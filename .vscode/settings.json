@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "*.tpl": "mako"
+    },
+    "[systemverilog]": {
+        "editor.detectIndentation": false,
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2,
+        
+    }
+}

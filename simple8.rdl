@@ -1,0 +1,61 @@
+addrmap simple8 {
+    name = "simple8";
+    desc = "An 8-bit regfile";
+    default accesswidth = 8;
+    default regwidth = 8;
+    
+    regfile my_regfile {
+        reg {
+            name = "Control";
+            desc = "Register description";
+            field {
+                name = "Field name";
+                desc = "Field description";
+                hw   = r;
+                sw   = rw;
+            } en[1] = 0x0;
+            field {
+                name = "Field name";
+                desc = "Field description";
+                hw   = r;
+                sw   = rw;
+            } sel[2] = 0x0;
+        } control ;
+        reg {
+            name = "Status";
+            desc = "Register description";
+            field {
+                name = "Interrupt request";
+                desc = "Field description";
+                hw   = w;
+                sw   = r;
+            } irq[1] = 0x0;
+        } status ;
+        reg {
+            name = "Read Write";
+            desc = "Register description";
+            field {
+                name = "Field name";
+                desc = "Field description";
+                hw   = rw;
+                sw   = rw;
+            } divlen[6] = 0x0;
+        } clkdiv ;
+    } ;
+
+    reg ptime {
+        name = "IRQ";
+        desc = "Playtime";
+        field {
+            name = "Sometime";
+            desc = "over the rainbow";
+            hw = rw;
+            sw = rw;
+        } playtime[7:0] = 0x1;
+    } ;
+    
+    my_regfile my_regfile[2] @ 0x0;
+    ptime      my_ptime   @ 0xC;
+    ptime my_ptime_high   @ 0xFF8;
+    ptime my_ptime_high1  @ 0xFFC;
+};
