@@ -251,7 +251,7 @@ OnWriteWset
 OnReadNone
 </%def>\
 <%def name="reset_gen(field)" filter="trim">\
-${field.width}'d${field.reset if field.reset is not None else 0}
+${field.width}'d${field.reset or 0}
 </%def>\
 <%def name="sv_bitarray(field)" filter="trim">\
 % if field.width > 1:
