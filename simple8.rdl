@@ -39,7 +39,7 @@ addrmap simple8 {
                 desc = "Field description";
                 hw   = rw;
                 sw   = rw;
-            } divlen[6] = 0x0;
+            } divlen[6]; // no default value
         } clkdiv ;
     } ;
 
