@@ -45,10 +45,6 @@ class Field(Node):
         return self.get_property('swmod')
     
     @property
-    def swacc(self):
-        return self.get_property('swacc')
-    
-    @property
     def bits(self):
         if self.msb == self.lsb:
             return str(self.msb)
