@@ -25,14 +25,14 @@ package ${lname}_reg_pkg;
   typedef struct packed {
   % if len(r) == 1:
     logic ${sv_bitarray(r[0])}q;
-    % if r[0].swacc:
+    % if r[0].swmod:
     logic qe;
     % endif
   % else:
     % for f in r:
     struct packed {
       logic ${sv_bitarray(f)}q;
-      % if f.swacc:
+      % if f.swmod:
       logic qe;
       % endif
     } ${f.name};

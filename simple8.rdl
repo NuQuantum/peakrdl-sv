@@ -60,7 +60,7 @@ addrmap simple8 {
             name = "write to stb";
             hw = r;
             sw = w;
-            swacc;
+            swmod;
         } data[7:0] = 0x1;
     } ;
     
