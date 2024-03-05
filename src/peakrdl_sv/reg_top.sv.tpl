@@ -113,7 +113,7 @@ module ${lblock}
     de_expr = "'0"
     d_expr = "'0"
 
-  if f.swmod:
+  if f.swacc:
     qe_expr = f"reg2hw.{struct_path}.qe"
   else:
     qe_expr = ""

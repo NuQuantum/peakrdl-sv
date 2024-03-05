@@ -53,9 +53,20 @@ addrmap simple8 {
             sw = rw;
         } playtime[7:0] = 0x1;
     } ;
+
+    reg stb {
+        name = "stb";
+        field {
+            name = "write to stb";
+            hw = r;
+            sw = w;
+            swacc;
+        } data[7:0] = 0x1;
+    } ;
     
     my_regfile my_regfile[2] @ 0x0;
-    ptime      my_ptime   @ 0xC;
-    ptime my_ptime_high   @ 0xFF8;
-    ptime my_ptime_high1  @ 0xFFC;
+    ptime      my_ptime      @ 0xC;
+    stb        my_stb        @ 0xD;
+    ptime my_ptime_high      @ 0xFF8;
+    ptime my_ptime_high1     @ 0xFFC;
 };
