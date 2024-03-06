@@ -33,9 +33,9 @@ module rdl_subreg
   logic [DW-1:0] wr_data;
 
   rdl_subreg_arb #(
-      .DW,
-      .OnRead,
-      .OnWrite
+      .DW(DW),
+      .OnRead(OnRead),
+      .OnWrite(OnWrite)
   ) u_arb (
       .we,
       .wd,
@@ -47,9 +47,9 @@ module rdl_subreg
   );
 
   rdl_subreg_flop #(
-      .DW,
-      .ResetType,
-      .ResetValue
+      .DW(DW),
+      .ResetType(ResetType),
+      .ResetValue(ResetValue)
   ) u_flop (
       .clk,
       .rst,

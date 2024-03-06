@@ -2,3 +2,8 @@ __pycache__
 .venv
 *.egg-info
 build
+results.xml
+*.fst
+tests/*/rtl
+tests/*/sim_build
+tests/*/python

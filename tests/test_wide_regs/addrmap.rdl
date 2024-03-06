@@ -1,0 +1,28 @@
+addrmap test {
+  default accesswidth = 8;
+  default regwidth = 16;
+  default sw = rw;
+  default hw = rw;
+
+  reg r1 {
+    field {} f1[8];
+    field {} f2[8];
+  };
+
+  reg r2 {
+    field {} f1[2];
+    field {} f2[15:13];
+  };
+
+  reg r3 {
+    regwidth = 8;
+    field {} f1[1];
+    field {} f2[6:4];
+  };
+
+  r1 r1_single   @ 0;
+  r1 r1_array[4] @ 2;
+  r2 r2_single   @ 18;
+  r3 r3_notwide  @ 20;
+
+};

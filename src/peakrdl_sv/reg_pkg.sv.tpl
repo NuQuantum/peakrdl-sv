@@ -24,14 +24,14 @@ package ${lname}_reg_pkg;
   // ${r.path}
   typedef struct packed {
   % if len(r) == 1:
-    logic ${sv_bitarray(r[0])}q;
+    logic ${sv_bitarray(r[0])} q;
     % if r[0].swmod:
     logic qe;
     % endif
   % else:
     % for f in r:
     struct packed {
-      logic ${sv_bitarray(f)}q;
+      logic ${sv_bitarray(f)} q;
       % if f.swmod:
       logic qe;
       % endif
@@ -46,12 +46,12 @@ package ${lname}_reg_pkg;
   // ${r.path}
   typedef struct packed {
     % if len(r) == 1:
-    logic ${sv_bitarray(r[0])}d;
+    logic ${sv_bitarray(r[0])} d;
     logic de;
     % else:
     % for f in r:
     struct packed {
-      logic ${sv_bitarray(f)}d;
+      logic ${sv_bitarray(f)} d;
       logic de;
     } ${f.name};
     % endfor
@@ -77,10 +77,22 @@ package ${lname}_reg_pkg;
   // Register address offsets
   % for r in registers:
 <%
-    value = f"{addr_width}'h{r.absolute_address:x}"
-    param = f"{ublock}_{r.path.upper()}_OFFSET"
+    if r.is_wide:
+      enables = r.regwidth // r.accesswidth
+      address_base = r.absolute_address
+      address_incr = r.accesswidth // 8
+      values = []
+      params = []
+      for i in range(enables):
+        values.append(f"{addr_width}'h{address_base+(i*address_incr):X}")
+        params.append(f"{ublock}_{r.path.upper()}_{i}_OFFSET")
+    else:
+      values = [f"{addr_width}'h{r.absolute_address:X}"]
+      params = [f"{ublock}_{r.path.upper()}_OFFSET"]
 %>\
-  parameter logic [BlockAw-1:0] ${param} = ${value};
+  % for p,v in zip(params, values):
+  parameter logic [BlockAw-1:0] ${p} = ${v};
+  % endfor
   % endfor
 
 endpackage

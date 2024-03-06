@@ -3,7 +3,9 @@ addrmap simple8 {
     desc = "An 8-bit regfile";
     default accesswidth = 8;
     default regwidth = 8;
-    
+    default sw=rw;
+    default hw=rw;
+
     regfile my_regfile {
         reg {
             name = "Control";
@@ -63,10 +65,24 @@ addrmap simple8 {
             swmod;
         } data[7:0] = 0x1;
     } ;
-    
+
+    reg wide_reg {
+        regwidth = 16;
+        field {} data0[7:0] = 0;
+        field {} data1[15:8] = 0;
+    };
+
+    reg data {
+        field {} a[8];
+    };
+
     my_regfile my_regfile[2] @ 0x0;
     ptime      my_ptime      @ 0xC;
     stb        my_stb        @ 0xD;
+    wide_reg   my_wide       @ 0x10;
+    wide_reg   my_array[4]   @ 0x20;
+    data       my_data[2]    @ 0x30;
+    wide_reg   my_wide_2     @ 0x40;
     ptime my_ptime_high      @ 0xFF8;
     ptime my_ptime_high1     @ 0xFFC;
 };
