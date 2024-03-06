@@ -33,29 +33,29 @@ module rdl_subreg
   logic [DW-1:0] wr_data;
 
   rdl_subreg_arb #(
-      .DW,
-      .OnRead,
-      .OnWrite
+      .DW     (DW),
+      .OnRead (OnRead),
+      .OnWrite(OnWrite)
   ) u_arb (
-      .we,
-      .wd,
-      .de,
-      .d,
-      .q,
-      .wr_en,
-      .wr_data
+      .we(we),
+      .wd(wd),
+      .de(de),
+      .d(d),
+      .q(q),
+      .wr_en(wr_en),
+      .wr_data(wr_data)
   );
 
   rdl_subreg_flop #(
-      .DW,
-      .ResetType,
-      .ResetValue
+      .DW(DW),
+      .ResetType(ResetType),
+      .ResetValue(ResetValue)
   ) u_flop (
-      .clk,
-      .rst,
-      .de(wr_en),
-      .d (wr_data),
-      .q (q)
+      .clk(clk),
+      .rst(rst),
+      .de (wr_en),
+      .d  (wr_data),
+      .q  (q)
   );
 
   assign qs = q;  // REVISIT: look at OnReadClear race condition for SW/HW simultaneous access.
