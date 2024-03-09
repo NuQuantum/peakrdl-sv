@@ -52,19 +52,33 @@ class Node(UserList):
 class Field(Node):
     @property
     def onread(self):
-        return self.get_property("onread")
+        return self.get_property('onread')
 
     @property
     def onwrite(self):
-        return self.get_property("onwrite")
+        return self.get_property('onwrite')
 
     @property
     def reset(self):
-        return self.get_property("reset")
+        return self.get_property('reset')
 
     @property
     def swmod(self):
-        return self.get_property("swmod")
+        return self.get_property('swmod')
+
+    @property
+    def swacc(self):
+        return self.get_property('swacc')
+
+    @property
+    def needs_qe(self) -> bool:
+        """Returns True if hardware needs to be notified of a SW write."""
+        return self.is_sw_writable and (self.swacc or self.swmod)
+
+    @property
+    def needs_qre(self):
+        """Returns True if hardware needs to be notified of a SW read."""
+        return self.is_sw_readable and (self.swacc or (self.swmod and self.onread is not None))
 
     @property
     def absolute_address(self):

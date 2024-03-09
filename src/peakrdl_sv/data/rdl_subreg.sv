@@ -1,4 +1,4 @@
-// Copyright Shareef Jalloq
+// Copyright Nu Quantum Ltd
 // SPDX-License-Identifier: MIT
 
 module rdl_subreg
@@ -14,6 +14,7 @@ module rdl_subreg
     input logic rst,
 
     // From CPU
+    input logic          re,
     input logic          we,
     input logic [DW-1:0] wd,
 
@@ -24,6 +25,7 @@ module rdl_subreg
     // Output to HW
     output logic [DW-1:0] q,
     output logic          qe,
+    output logic          qre,
 
     // Output to CPU
     output logic [DW-1:0] qs
@@ -58,7 +60,8 @@ module rdl_subreg
       .q (q)
   );
 
-  assign qs = q;  // REVISIT: look at OnReadClear race condition for SW/HW simultaneous access.
-  assign qe = wr_en;  // REVISIT: qe needs to be asserted on read with side effects.
+  assign qs  = q;  // REVISIT: look at OnReadClear race condition for SW/HW simultaneous access.
+  assign qe  = wr_en;  // REVISIT: qe needs to be asserted on read with side effects.
+  assign qre = re;
 
 endmodule

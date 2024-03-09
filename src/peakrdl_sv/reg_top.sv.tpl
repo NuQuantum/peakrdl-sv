@@ -23,14 +23,21 @@
     reg_enables[key] = {}
     reg_enables[key]['idx'] = idx
     reg_enables[key]['we']  = []
+    reg_enables[key]['re']  = []
 
     if r.is_wide:
-      # If the regwidth > accesswidth, then we need multiple write enables.
+      # If the regwidth > accesswidth, then we need multiple read/write enables.
       for s in range(r.subregs):
-        reg_enables[key]['we'].append( f"{r.path.lower()}_{s}_we" )
+        if r.has_sw_writable:
+          reg_enables[key]['we'].append( f"{r.path.lower()}_{s}_we" )
+        if r.has_sw_readable
+          reg_enables[key]['re'].append( f"{r.path.lower()}_{s}_re" )
     else:
-      # If regwidth == accesswidth, then we have a single write enable.
-      reg_enables[key]['we'].append( f"{r.path.lower()}_we" )
+      # If regwidth == accesswidth, then we have a single read/write enable.
+      if r.has_sw_writable:
+        reg_enables[key]['we'].append( f"{r.path.lower()}_we" )
+      if r.has_sw_readable:
+      reg_enables[key]['re'].append( f"{r.path.lower()}_re" )
 
     # Increase the index by the subreg count.  The index of each addressable
     # node is used to construct the addr_hit vector below.
@@ -97,6 +104,11 @@ module ${lblock}_reg_top
   // --------------------------------------------------------------------------------
 
   % for r in registers:
+  % if r.has_sw_readable:
+  % for enable in reg_enables[r.path.lower()]['re']:
+  logic ${enable};
+  % endfor
+  % endif
   % if r.has_sw_writable:
   % for enable in reg_enables[r.path.lower()]['we']:
   logic ${enable};
@@ -114,50 +126,51 @@ module ${lblock}_reg_top
   % for i,r in enumerate(registers):
   % for f in r:
 <%
-
   if len(r) == 1:
     struct_path = f"{r.path}"
   else:
     struct_path = f"{r.path}.{f.inst_name}"
 
-  if f.is_sw_writable:
-    if r.is_wide:
-      subreg_idx = f.msb // r.accesswidth
-      we_expr = reg_enables[r.path.lower()]['we'][subreg_idx]
-    else:
-      we_expr = f"{r.path.lower()}_we"
-    wd_expr = f"{f.path.lower()}_wd"
-  else:
-    we_expr = ""
-    wd_expr = ""
+  subreg_idx = f.msb // r.accesswidth
 
-  if f.is_sw_readable:
-    qs_expr = f"{f.path}_qs"
+  if r.is_wide:
+    we_expr = reg_enables[r.path.lower()]['we'][subreg_idx] if f.is_sw_writable else ""
+    re_expr = reg_enables[r.path.lower()]['re'][subreg_idx] if f.is_sw_readable else ""
   else:
-    qs_expr = ""
+    we_expr = f"{r.path.lower()}_we" if f.is_sw_writable else ""
+    re_expr = f"{r.path.lower()}_re" if f.is_sw_readable else ""
 
-  if f.is_hw_writable:
-    de_expr = f"hw2reg.{struct_path}.de"
-    d_expr  = f"hw2reg.{struct_path}.d"
-  else:
-    de_expr = "'0"
-    d_expr = "'0"
+  wd_expr = f"{f.path.lower()}_wd" if f.is_sw_writable else ""
+  qs_expr = f"{f.path.lower()}_qs" if f.is_sw_readable else ""
 
-  if f.swmod:
-    qe_expr = f"reg2hw.{struct_path}.qe"
-  else:
-    qe_expr = ""
+  de_expr = f"hw2reg.{struct_path}.de" if f.is_hw_writable else "'0"
+  d_expr  = f"hw2reg.{struct_path}.d"  if f.is_hw_writable else "'0"
 
-  if f.is_hw_readable:
-    q_expr = f"reg2hw.{struct_path}.q"
-  else:
-    q_expr = ""
+  q_expr   = f"reg2hw.{struct_path}.q"  if f.is_hw_readable else ""
+  qe_expr  = f"reg2hw.{struct_path}.qe" if f.needs_qe else ""
+  qre_expr = f"reg2hw.{struct_path}.re" if f.needs_qre else ""
 
 %>\
   // Field[${f.name}] ${f.get_bit_slice()}
   % if f.is_sw_readable:
   logic ${sv_bitarray(f)} ${qs_expr};
   % endif
+  % if r.external:
+  // Register[${r.name}] Field[${f.name}] Bits[${f.bits}]
+  rdl_subreg_ext #(
+    .DW (${f.width})
+  ) u_${f.path.lower()} (
+    .re  (${re_expr}),
+    .we  (${we_expr}),
+    .wd  (${wd_expr}),
+    .d   (${d_expr}),
+    .qe  (${qe_expr}),
+    .qre (${qre_expr}),
+    .q   (${q_expr}),
+    .qs  (${qs_expr})
+  );
+  % else:
+  // Register[${r.name}] Field[${f.name}] Bits[${f.bits}]
   rdl_subreg #(
     .DW         (${f.width}),
     .ResetType  (ResetType),
@@ -167,6 +180,7 @@ module ${lblock}_reg_top
   ) u_${f.path.lower()} (
     .clk (clk),
     .rst (rst),
+    .re  (${re_expr}),
     .we  (${we_expr}),
     .wd  (${wd_expr}),
     .de  (${de_expr}),
@@ -175,8 +189,9 @@ module ${lblock}_reg_top
     .qe  (${qe_expr}),
     .q   (${q_expr})
   );
-
+  % endif
   % endfor
+
   % endfor
 
   // --------------------------------------------------------------------------------
@@ -255,11 +270,23 @@ endmodule
 <%def name="register_we_gen(reg, idx)">\
 <%
   write_enables = reg_enables[reg.path.lower()]['we']
-  idx = reg_enables[reg.path.lower()]['idx']
+  read_enables  = reg_enables[reg.path.lower()]['re']
+  idx           = reg_enables[reg.path.lower()]['idx']
 %>\
   % for i,enable in enumerate(write_enables):
   assign ${enable} = addr_hit[${idx+i}] && reg_we;
   % endfor
+  % for i,enable in enumerate(read_enables):
+  assign ${enable} = addr_hit[${idx+i}] && reg_re;
+  % endfor
+## REVISIT: this is the old code pre wide-reg support.  Remove once above works.
+## <%def name="reg_enable_gen(reg, idx)">\
+##   % if reg.has_sw_writable:
+##   assign ${reg.path.lower()}_we = addr_hit[${idx}] && reg_we;
+##   % endif
+##   % if reg.has_sw_readable:
+##   assign ${reg.path.lower()}_re = addr_hit[${idx}] && reg_re;
+##   % endif
 </%def>\
 <%def name="field_wd_gen(field)">\
   % if field.is_sw_writable:
