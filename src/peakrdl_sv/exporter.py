@@ -15,11 +15,11 @@ from systemrdl.node import RegfileNode
 from systemrdl.node import RegNode
 from systemrdl.node import RootNode
 
-# from typing import List
+from typing import List # noqa REVISIT: improve typing support
 
-# from typing import Any
-# from typing import Optional
-# from typing import Union
+from typing import Any # noqa REVISIT: improve typing support
+from typing import Optional # noqa REVISIT: improve typing support
+from typing import Union # noqa REVISIT: improve typing support
 
 
 class Node(UserList):
@@ -99,19 +99,35 @@ class Field(Node):
 
 class Register(Node):
     @property
-    def accesswidth(self):
+    def accesswidth(self) -> int:
+        """Returns the SW access width in bytes."""
         return self.get_property("accesswidth")
 
     @property
-    def regwidth(self):
+    def regwidth(self) -> int:
+        """Returns the width of the register in bytes."""
         return self.get_property("regwidth")
 
     @property
-    def is_wide(self):
+    def is_wide(self) -> bool:
+        """Returns True if the register is wider than the SW access width.
+        
+        If True, this means that software takes multiple cycles to access all fields 
+        within the register.
+        
+        """
         return self.regwidth > self.accesswidth
 
     @property
-    def addressinc(self):
+    def addressincr(self) -> int:
+        """How many bytes each SW access addresses.
+        
+        This is only really useful for wide registers where you need to calculate the
+        subreg offset within a register.  The RDL base classes only give you the 
+        absolute address of the base register so you have to manually calculate the
+        offset within that register.
+        
+        """
         return self.accesswidth // 8
 
     @property

@@ -1,0 +1,4 @@
+`verilator_config
+
+lint_off --rule PINCONNECTEMPTY
+lint_off --rule UNUSED

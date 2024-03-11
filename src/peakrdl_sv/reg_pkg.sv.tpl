@@ -78,13 +78,10 @@ package ${lname}_reg_pkg;
   % for r in registers:
 <%
     if r.is_wide:
-      enables = r.regwidth // r.accesswidth
-      address_base = r.absolute_address
-      address_incr = r.accesswidth // 8
       values = []
       params = []
-      for i in range(enables):
-        values.append(f"{addr_width}'h{address_base+(i*address_incr):X}")
+      for i in range(r.subregs):
+        values.append(f"{addr_width}'h{r.absolute_address+(i*r.addressincr):X}")
         params.append(f"{ublock}_{r.path.upper()}_{i}_OFFSET")
     else:
       values = [f"{addr_width}'h{r.absolute_address:X}"]

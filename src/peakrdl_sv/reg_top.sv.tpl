@@ -14,7 +14,8 @@
   num_regs   = len(registers)
   max_regs_char = len("{}".format(num_regs-1))
 
-  # Construct a dict that contains useful
+  # Construct a dict that contains useful signal names that would otherwise
+  # have to be computed in multiple places.
   idx = 0
   reg_enables = {}
   for r in registers:
