@@ -1,0 +1,61 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    - id: check-yaml
+      args: [--unsafe]
+    - id: end-of-file-fixer
+      exclude: '.*\.(xml|drawio|svg|pgm)'
+    - id: trailing-whitespace
+      types: [text]
+      exclude: '.*\.(xml|drawio|svg|pgm)'
+    - id: check-added-large-files
+      args: ['--maxkb=200']
+      exclude: '^docs/source/theory/dsp/diagrams'
+
+  - repo: https://github.com/asottile/reorder_python_imports
+    rev: v3.12.0
+    hooks:
+    - id: reorder-python-imports
+      args: [
+        --application-directories, '.:src',
+        --py38-plus,
+        --add-import, 'from __future__ import annotations',
+      ]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+    - id: pyupgrade
+      args: [--py38-plus]
+
+  - repo: https://github.com/asottile/add-trailing-comma
+    rev: v3.1.0
+    hooks:
+    - id: add-trailing-comma
+
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+    - id: black
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+    - id: flake8
+      args: [--max-line-length=88]
+      exclude: '.*/migen/.*'
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v14.0.0 # Must match clang-format version
+    hooks:
+    - id: clang-format
+
+  - repo: local
+    hooks:
+    - id: signals.gtkw
+      name: Remove absolute paths from gtkw files
+      entry: ./hooks/gtkw.py
+      language: python
+      files: '.*\.gtkw$'
