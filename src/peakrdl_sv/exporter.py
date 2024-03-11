@@ -109,6 +109,23 @@ class Field(Node):
             return f"{msb}"
         else:
             return f"{msb}:{lsb}"
+        
+    def get_n_bits(self, bittype: list[str]) -> int:
+        """Returns the number of bits used in this field.
+        
+        """
+        n_bits = 0
+        if 'q' in bittype and self.is_hw_readable:
+            n_bits += self.width
+        if 'd' in bittype and self.is_hw_writable:
+            n_bits += self.width
+        if 'qe' in bittype and self.is_hw_readable:
+            n_bits += int(self.needs_qe)
+        if 're' in bittype and self.is_hw_readable:
+            n_bits += int(self.needs_qre)
+        if 'de' in bittype and self.is_hw_writable:
+            n_bits += int(not self.external)
+        return n_bits
 
 
 class Register(Node):
@@ -161,7 +178,7 @@ class Register(Node):
             if (f.msb // self.accesswidth) == subreg:
                 fields.append(f)
         return fields
-
+    
 
 class RegisterFile(Node):
     pass

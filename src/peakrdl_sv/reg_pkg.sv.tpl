@@ -10,8 +10,6 @@
   addr_width = block.addrwidth
   data_width = block.accesswidth
   registers  = block.get_registers()
-  num_regs   = len(registers)
-  max_regs_char = len("{}".format(num_regs-1))
 
 %>\
 package ${lname}_reg_pkg;
@@ -68,15 +66,43 @@ package ${lname}_reg_pkg;
 
   // Register -> HW
   typedef struct packed {
+<%
+  tmp = 0
+  nbits = sum([f.get_n_bits(['q', 'qe', 're']) for r in registers for f in r])
+%>\
   % for r in registers:
-    ${reg2hw_t_gen(r)} ${r.path};
+    % if r.has_hw_readable:
+<%
+  reg_bits = sum([f.get_n_bits(['q', 'qe', 're']) for f in r])
+  msb = nbits - tmp - 1
+  lsb = msb - reg_bits + 1
+  tmp += reg_bits
+  comment = f"// {msb}:{lsb}"
+  lsb = msb + 1
+%>\
+    ${reg2hw_t_gen(r)} ${r.path}; ${comment}
+    % endif
   % endfor 
   } ${lname}_reg2hw_t;
 
   // HW -> Register
   typedef struct packed {
+<%
+  tmp = 0
+  nbits = sum([f.get_n_bits(['d', 'de']) for r in registers for f in r])
+%>\
   % for r in registers:
-    ${hw2reg_t_gen(r)} ${r.path};
+    % if r.has_hw_writable:
+<%
+  reg_bits = sum([f.get_n_bits(['d', 'de']) for f in r])
+  msb = nbits - tmp - 1
+  lsb = msb - reg_bits + 1
+  tmp += reg_bits
+  comment = f"// {msb}:{lsb}"
+  lsb = msb + 1
+%>\
+    ${hw2reg_t_gen(r)} ${r.path}; ${comment}
+    % endif
   % endfor 
   } ${lname}_hw2reg_t;
 

@@ -11,8 +11,6 @@
   addr_width = block.addrwidth
   data_width = block.accesswidth
   registers  = block.get_registers()
-  num_regs   = len(registers)
-  max_regs_char = len("{}".format(num_regs-1))
 
   # Construct a dict that contains useful signal names that would otherwise
   # have to be computed in multiple places.
@@ -43,7 +41,9 @@
     # node is used to construct the addr_hit vector below.
     idx += r.subregs
 
+  # The total number of addressable registers includes all sub-registers.
   num_regs = idx
+  max_regs_char = len("{}".format(num_regs-1))
 
 %>
 
@@ -104,7 +104,7 @@ module ${lblock}_reg_top
   // --------------------------------------------------------------------------------
 
   % for r in registers:
-  % if r.has_sw_readable:
+  % if r.has_hw_readable:
   % for enable in reg_enables[r.path.lower()]['re']:
   logic ${enable};
   % endfor
@@ -135,10 +135,10 @@ module ${lblock}_reg_top
 
   if r.is_wide:
     we_expr = reg_enables[r.path.lower()]['we'][subreg_idx] if f.is_sw_writable else ""
-    re_expr = reg_enables[r.path.lower()]['re'][subreg_idx] if f.is_sw_readable else ""
+    re_expr = reg_enables[r.path.lower()]['re'][subreg_idx] if f.needs_qre else ""
   else:
     we_expr = f"{r.path.lower()}_we" if f.is_sw_writable else ""
-    re_expr = f"{r.path.lower()}_re" if f.is_sw_readable else ""
+    re_expr = f"{r.path.lower()}_re" if f.needs_qre else ""
 
   wd_expr = f"{f.path.lower()}_wd" if f.is_sw_writable else ""
   qs_expr = f"{f.path.lower()}_qs" if f.is_sw_readable else ""
@@ -151,7 +151,7 @@ module ${lblock}_reg_top
   qre_expr = f"reg2hw.{struct_path}.re" if f.needs_qre else ""
 
 %>\
-  // Field[${f.name}] ${f.get_bit_slice()}
+  // Register[${r.name}] Field[${f.name}] Bits[${f.get_bit_slice()}]
   % if f.is_sw_readable:
   logic ${sv_bitarray(f)} ${qs_expr};
   % endif
@@ -170,7 +170,6 @@ module ${lblock}_reg_top
     .qs  (${qs_expr})
   );
   % else:
-  // Register[${r.name}] Field[${f.name}] Bits[${f.get_bit_slice()}]
   rdl_subreg #(
     .DW         (${f.width}),
     .ResetType  (ResetType),
@@ -191,8 +190,8 @@ module ${lblock}_reg_top
     .q   (${q_expr})
   );
   % endif
-  % endfor
 
+  % endfor
   % endfor
 
   // --------------------------------------------------------------------------------
