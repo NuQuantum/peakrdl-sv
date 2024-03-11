@@ -187,6 +187,7 @@ module ${lblock}_reg_top
     .d   (${d_expr}),
     .qs  (${qs_expr}),
     .qe  (${qe_expr}),
+    .qre (${qre_expr}),
     .q   (${q_expr})
   );
   % endif
