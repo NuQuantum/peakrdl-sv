@@ -30,14 +30,14 @@
       for s in range(r.subregs):
         if r.has_sw_writable:
           reg_enables[key]['we'].append( f"{r.path.lower()}_{s}_we" )
-        if r.has_sw_readable
+        if r.has_sw_readable:
           reg_enables[key]['re'].append( f"{r.path.lower()}_{s}_re" )
     else:
       # If regwidth == accesswidth, then we have a single read/write enable.
       if r.has_sw_writable:
         reg_enables[key]['we'].append( f"{r.path.lower()}_we" )
       if r.has_sw_readable:
-      reg_enables[key]['re'].append( f"{r.path.lower()}_re" )
+        reg_enables[key]['re'].append( f"{r.path.lower()}_re" )
 
     # Increase the index by the subreg count.  The index of each addressable
     # node is used to construct the addr_hit vector below.
@@ -156,7 +156,7 @@ module ${lblock}_reg_top
   logic ${sv_bitarray(f)} ${qs_expr};
   % endif
   % if r.external:
-  // Register[${r.name}] Field[${f.name}] Bits[${f.bits}]
+  // Register[${r.name}] Field[${f.name}] Bits[${f.get_bit_slice()}]
   rdl_subreg_ext #(
     .DW (${f.width})
   ) u_${f.path.lower()} (
@@ -170,7 +170,7 @@ module ${lblock}_reg_top
     .qs  (${qs_expr})
   );
   % else:
-  // Register[${r.name}] Field[${f.name}] Bits[${f.bits}]
+  // Register[${r.name}] Field[${f.name}] Bits[${f.get_bit_slice()}]
   rdl_subreg #(
     .DW         (${f.width}),
     .ResetType  (ResetType),

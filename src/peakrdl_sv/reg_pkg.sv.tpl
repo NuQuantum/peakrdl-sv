@@ -28,7 +28,7 @@ package ${lname}_reg_pkg;
     % if r[0].needs_qe:
     logic qe;
     % endif
-    % if r.needs_qre:
+    % if r[0].needs_qre:
     logic re;
     % endif
   % else:
@@ -38,7 +38,7 @@ package ${lname}_reg_pkg;
       % if f.needs_qe:
       logic qe;
       % endif
-      % if r.needs_qre:
+      % if f.needs_qre:
       logic re;
       % endif
     } ${f.name};
