@@ -34,28 +34,30 @@ class Listener(RDLListener):
         self.top_node = self._active_node.pop()
 
     def enter_Addrmap(self, node) -> None:
-        self.push(AddressMap(node))
+        self.push(AddressMap(node, None))
 
     def exit_Addrmap(self, node) -> None:
         self.pop()
 
     def enter_Regfile(self, node: RegfileNode) -> None:
-        self.push(RegisterFile(node))
+        self.push(RegisterFile(node, self._current_node))
 
     def exit_Regfile(self, node: RegfileNode) -> None:
         self.pop()
 
     def enter_Reg(self, node: RegNode) -> None:
-        self.push(Register(node))
+        self.push(Register(node, self._current_node))
 
     def exit_Reg(self, node: RegNode) -> None:
         self.pop()
 
     def enter_Field(self, node: FieldNode) -> None:
-        self.push(Field(node))
+        self.push(Field(node, self._current_node))
 
     def exit_Field(self, node: FieldNode) -> None:
         self.pop()
 
     def walk(self, node: RootNode | AddrmapNode, unroll: bool = True):
+        if isinstance(node, RootNode):
+            node = node.top
         RDLWalker(unroll=True).walk(node, self)
