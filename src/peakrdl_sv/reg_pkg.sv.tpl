@@ -82,7 +82,7 @@ package ${lname}_reg_pkg;
 %>\
     ${reg2hw_t_gen(r)} ${r.path}; ${comment}
     % endif
-  % endfor 
+  % endfor
   } ${lname}_reg2hw_t;
 
   // HW -> Register
@@ -103,7 +103,7 @@ package ${lname}_reg_pkg;
 %>\
     ${hw2reg_t_gen(r)} ${r.path}; ${comment}
     % endif
-  % endfor 
+  % endfor
   } ${lname}_hw2reg_t;
 
   // Register address offsets
