@@ -52,19 +52,33 @@ class Node(UserList):
 class Field(Node):
     @property
     def onread(self):
-        return self.get_property("onread")
+        return self.get_property('onread')
 
     @property
     def onwrite(self):
-        return self.get_property("onwrite")
+        return self.get_property('onwrite')
 
     @property
     def reset(self):
-        return self.get_property("reset")
+        return self.get_property('reset')
 
     @property
     def swmod(self):
-        return self.get_property("swmod")
+        return self.get_property('swmod')
+
+    @property
+    def swacc(self):
+        return self.get_property('swacc')
+
+    @property
+    def needs_qe(self) -> bool:
+        """Returns True if hardware needs to be notified of a SW write."""
+        return self.is_sw_writable and (self.swacc or self.swmod)
+
+    @property
+    def needs_qre(self):
+        """Returns True if hardware needs to be notified of a SW read."""
+        return self.is_sw_readable and (self.swacc or (self.swmod and self.onread is not None))
 
     @property
     def absolute_address(self):
@@ -95,7 +109,31 @@ class Field(Node):
             return f"{msb}"
         else:
             return f"{msb}:{lsb}"
-
+    
+    def get_reg2hw_struct_bits(self) -> int:
+        """Returns the number of bits used in the reg2hw struct.
+        
+        This is a helper method for templating.  It returns the number of bits used
+        in the reg2hw struct that contains the 'q', 'qe', and 're' fields.
+        
+        """
+        if not self.is_hw_readable:
+            return 0
+        return self.width + int(self.needs_qe) + int(self.needs_qre)
+    
+    def get_hw2reg_struct_bits(self) -> int:
+        """Returns the number of bits used in the hw2reg struct.
+        
+        As above, but for the 'd', 'de' bits.
+        
+        REVISIT: at the moment we don't check whether the field sw/hw access properties
+        result in a storage requirement.  This needs to be udpated.  In some cases we
+        need to implement a constant or a passthrough wire.
+        
+        """
+        if not self.is_hw_writable:
+            return 0
+        return self.width + int(not self.external)
 
 class Register(Node):
     @property
@@ -147,7 +185,7 @@ class Register(Node):
             if (f.msb // self.accesswidth) == subreg:
                 fields.append(f)
         return fields
-
+    
 
 class RegisterFile(Node):
     pass
