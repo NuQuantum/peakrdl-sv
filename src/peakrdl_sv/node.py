@@ -1,44 +1,54 @@
-from systemrdl.node import AddrmapNode, RegfileNode, RegNode, FieldNode, RootNode
-from typing import List
+from __future__ import annotations
+
 from collections import UserList
 
+from systemrdl.node import AddrmapNode
+from systemrdl.node import FieldNode
+from systemrdl.node import RegfileNode
+from systemrdl.node import RegNode
+
+
 class Node(UserList):
-    def __init__(self, node: Union[AddrmapNode, RegfileNode, RegNode, FieldNode]) -> None:
+    def __init__(self, node: AddrmapNode | RegfileNode | RegNode | FieldNode) -> None:
         self.node = node
         super().__init__()
 
     def __getattr__(self, item):
         return getattr(self.node, item)
-    
+
     @property
     def name(self):
         return self.inst_name
-    
+
     @property
     def path(self):
-        return self.get_rel_path(self.owning_addrmap, hier_separator="_", array_suffix="_{index:d}")
-    
-    
+        return self.get_rel_path(
+            self.owning_addrmap,
+            hier_separator="_",
+            array_suffix="_{index:d}",
+        )
+
+
 class Field(Node):
     @property
     def onread(self):
-        return self.get_property('onread')
-    
+        return self.get_property("onread")
+
     @property
     def onwrite(self):
-        return self.get_property('onwrite')
-    
+        return self.get_property("onwrite")
+
     @property
     def reset(self):
-        return self.get_property('reset')
-    
+        return self.get_property("reset")
+
     @property
     def swmod(self):
-        return self.get_property('swmod')
-    
+        return self.get_property("swmod")
+
     @property
     def swacc(self):
-        return self.get_property('swacc')
+        return self.get_property("swacc")
 
     @property
     def needs_qe(self) -> bool:
@@ -48,7 +58,9 @@ class Field(Node):
     @property
     def needs_qre(self):
         """Returns True if hardware needs to be notified of a SW read."""
-        return self.is_sw_readable and (self.swacc or (self.swmod and self.onread is not None))
+        return self.is_sw_readable and (
+            self.swacc or (self.swmod and self.onread is not None)
+        )
 
     @property
     def absolute_address(self):
@@ -79,32 +91,32 @@ class Field(Node):
             return f"{msb}"
         else:
             return f"{msb}:{lsb}"
-    
+
     def get_reg2hw_struct_bits(self) -> int:
         """Returns the number of bits used in the reg2hw struct.
-        
+
         This is a helper method for templating.  It returns the number of bits used
         in the reg2hw struct that contains the 'q', 'qe', and 're' fields.
-        
+
         """
         if not self.is_hw_readable:
             return 0
         return self.width + int(self.needs_qe) + int(self.needs_qre)
-    
+
     def get_hw2reg_struct_bits(self) -> int:
         """Returns the number of bits used in the hw2reg struct.
-        
+
         As above, but for the 'd', 'de' bits.
-        
+
         REVISIT: at the moment we don't check whether the field sw/hw access properties
         result in a storage requirement.  This needs to be udpated.  In some cases we
         need to implement a constant or a passthrough wire.
-        
+
         """
         if not self.is_hw_writable:
             return 0
         return self.width + int(not self.external)
-        
+
 
 class Register(Node):
     @property
@@ -120,22 +132,22 @@ class Register(Node):
     @property
     def is_wide(self) -> bool:
         """Returns True if the register is wider than the SW access width.
-        
-        If True, this means that software takes multiple cycles to access all fields 
+
+        If True, this means that software takes multiple cycles to access all fields
         within the register.
-        
+
         """
         return self.regwidth > self.accesswidth
 
     @property
     def addressincr(self) -> int:
         """How many bytes each SW access addresses.
-        
+
         This is only really useful for wide registers where you need to calculate the
-        subreg offset within a register.  The RDL base classes only give you the 
+        subreg offset within a register.  The RDL base classes only give you the
         absolute address of the base register so you have to manually calculate the
         offset within that register.
-        
+
         """
         return self.accesswidth // 8
 
@@ -163,10 +175,12 @@ class RegisterFile(Node):
 
 
 class AddressMap(Node):
-    def get_registers(self) -> List[Register]:
+    def get_registers(self) -> list[Register]:
         def get_child_regs(child, regs):
             if isinstance(child, (AddressMap, Field)):
-                raise RuntimeError(f"unexpected call to get_child_regs on object {child}")
+                raise RuntimeError(
+                    f"unexpected call to get_child_regs on object {child}",
+                )
             elif isinstance(child, RegisterFile):
                 for ch in child:
                     get_child_regs(ch, regs)
@@ -174,16 +188,16 @@ class AddressMap(Node):
                 regs.append(child)
             else:
                 raise RuntimeError(f"unrecognised type: {type(child)}")
-        
+
         registers = []
-        for i,child in enumerate(self):
+        for i, child in enumerate(self):
             get_child_regs(child, registers)
         return registers
-    
+
     @property
     def addrwidth(self) -> int:
         return self.size.bit_length()
-    
+
     @property
     def accesswidth(self) -> int:
-        return min([reg.get_property('accesswidth') for reg in self.get_registers()])
+        return min([reg.get_property("accesswidth") for reg in self.get_registers()])

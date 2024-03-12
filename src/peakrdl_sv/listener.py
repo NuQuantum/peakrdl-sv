@@ -1,18 +1,29 @@
-from systemrdl import RDLWalker, RDLListener
-from systemrdl.node import RootNode, AddrmapNode, RegfileNode, RegNode, FieldNode
-from peakrdl_sv.node import AddressMap, RegisterFile, Register, Field
-from typing import Union
+from __future__ import annotations
+
+from systemrdl import RDLListener
+from systemrdl import RDLWalker
+from systemrdl.node import AddrmapNode
+from systemrdl.node import FieldNode
+from systemrdl.node import RegfileNode
+from systemrdl.node import RegNode
+from systemrdl.node import RootNode
+
+from peakrdl_sv.node import AddressMap
+from peakrdl_sv.node import Field
+from peakrdl_sv.node import Register
+from peakrdl_sv.node import RegisterFile
+
 
 class Listener(RDLListener):
     def __init__(self):
-        self._active_node = [] # REVISIT: better name
+        self._active_node = []  # REVISIT: better name
         self.top_node = None
 
     @property
     def _current_node(self):
         return self._active_node[-1]
-    
-    def push(self, node: Union[AddressMap, RegisterFile, Register]):
+
+    def push(self, node: AddressMap | RegisterFile | Register):
         try:
             self._current_node.append(node)
         except IndexError:
@@ -44,7 +55,7 @@ class Listener(RDLListener):
         self.push(Field(node))
 
     def exit_Field(self, node: FieldNode) -> None:
-        self.pop()        
-        
-    def walk(self, node: Union[RootNode, AddrmapNode], unroll: bool=True):
+        self.pop()
+
+    def walk(self, node: RootNode | AddrmapNode, unroll: bool = True):
         RDLWalker(unroll=True).walk(node, self)

@@ -1,6 +1,6 @@
 # peakrdl-sv
 
-This SystemRDL exporter outputs SystemVerilog that is hopefully consumable by *any* 
+This SystemRDL exporter outputs SystemVerilog that is hopefully consumable by *any*
 EDA tool including the common open source simulators such as Icarus and Verilator.
 
 The design philosophy was to keep it simple and avoid the complexity of implementing
@@ -9,7 +9,7 @@ there are no plans to extend support beyond the basics.
 
 ## Alternatives
 
-There are already many Verilog SystemRDL exporters out there including `PeakRDL-regblock` 
+There are already many Verilog SystemRDL exporters out there including `PeakRDL-regblock`
 which is maintained by the author of many of the Python tooling.
 
 ### PeakRDL-regblock
@@ -35,8 +35,8 @@ has not enabled issues so further investigation was ruled out.
 
 ### OpenTitan RegTool
 
-Perhaps the nicest and cleanest register tool out there is `RegTool`.  This is part of the 
-open source OpenTitan project and you can find the documentation here: 
+Perhaps the nicest and cleanest register tool out there is `RegTool`.  This is part of the
+open source OpenTitan project and you can find the documentation here:
 https://opentitan.org/book/util/reggen/index.html
 
 The tool uses its own HJSON schema to define the registers and is somewhat simpler than
@@ -52,8 +52,8 @@ the work needed on the Python side.
 
 The implementation choices were made to simplify the complexity of the Python RDL
 exporter.  Rather than generating a flat RTL view of the whole register file, as is
-done by many of the current SystemRDL exporters, each field is instantiated as a 
-parameterisable Verilog module.  This vastly reduces the complexity of both the 
+done by many of the current SystemRDL exporters, each field is instantiated as a
+parameterisable Verilog module.  This vastly reduces the complexity of both the
 templating and the exporter code by moving specialisation into the RTL via generate
 statements.
 
@@ -97,7 +97,7 @@ $ pip install git+https://github.com/nuquantum/peakrdl-sv
 
 ## Usage
 
-The exporter integrates with PeakRDL via the plugin flow defined here: 
+The exporter integrates with PeakRDL via the plugin flow defined here:
 https://peakrdl.readthedocs.io/en/latest/for-devs/exporter-plugin.html
 
 ```
