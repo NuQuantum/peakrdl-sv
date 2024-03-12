@@ -109,24 +109,31 @@ class Field(Node):
             return f"{msb}"
         else:
             return f"{msb}:{lsb}"
+    
+    def get_reg2hw_struct_bits(self) -> int:
+        """Returns the number of bits used in the reg2hw struct.
         
-    def get_n_bits(self, bittype: list[str]) -> int:
-        """Returns the number of bits used in this field.
+        This is a helper method for templating.  It returns the number of bits used
+        in the reg2hw struct that contains the 'q', 'qe', and 're' fields.
         
         """
-        n_bits = 0
-        if 'q' in bittype and self.is_hw_readable:
-            n_bits += self.width
-        if 'd' in bittype and self.is_hw_writable:
-            n_bits += self.width
-        if 'qe' in bittype and self.is_hw_readable:
-            n_bits += int(self.needs_qe)
-        if 're' in bittype and self.is_hw_readable:
-            n_bits += int(self.needs_qre)
-        if 'de' in bittype and self.is_hw_writable:
-            n_bits += int(not self.external)
-        return n_bits
-
+        if not self.is_hw_readable:
+            return 0
+        return self.width + int(self.needs_qe) + int(self.needs_qre)
+    
+    def get_hw2reg_struct_bits(self) -> int:
+        """Returns the number of bits used in the hw2reg struct.
+        
+        As above, but for the 'd', 'de' bits.
+        
+        REVISIT: at the moment we don't check whether the field sw/hw access properties
+        result in a storage requirement.  This needs to be udpated.  In some cases we
+        need to implement a constant or a passthrough wire.
+        
+        """
+        if not self.is_hw_writable:
+            return 0
+        return self.width + int(not self.external)
 
 class Register(Node):
     @property

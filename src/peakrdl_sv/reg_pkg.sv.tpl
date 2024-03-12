@@ -68,12 +68,12 @@ package ${lname}_reg_pkg;
   typedef struct packed {
 <%
   tmp = 0
-  nbits = sum([f.get_n_bits(['q', 'qe', 're']) for r in registers for f in r])
+  nbits = sum([f.get_reg2hw_struct_bits() for r in registers for f in r])
 %>\
   % for r in registers:
     % if r.has_hw_readable:
 <%
-  reg_bits = sum([f.get_n_bits(['q', 'qe', 're']) for f in r])
+  reg_bits = sum([f.get_reg2hw_struct_bits() for f in r])
   msb = nbits - tmp - 1
   lsb = msb - reg_bits + 1
   tmp += reg_bits
@@ -89,12 +89,12 @@ package ${lname}_reg_pkg;
   typedef struct packed {
 <%
   tmp = 0
-  nbits = sum([f.get_n_bits(['d', 'de']) for r in registers for f in r])
+  nbits = sum([f.get_hw2reg_struct_bits() for r in registers for f in r])
 %>\
   % for r in registers:
     % if r.has_hw_writable:
 <%
-  reg_bits = sum([f.get_n_bits(['d', 'de']) for f in r])
+  reg_bits = sum([f.get_hw2reg_struct_bits() for f in r])
   msb = nbits - tmp - 1
   lsb = msb - reg_bits + 1
   tmp += reg_bits
