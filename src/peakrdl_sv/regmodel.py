@@ -1,58 +1,15 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Callable
-from typing import Coroutine
 from typing import Generator
 
 import numpy as np
 from systemrdl import RDLCompiler
 
+from peakrdl_sv.callbacks import CallbackSet
 from peakrdl_sv.listener import Listener
 from peakrdl_sv.node import AddressMap
 from peakrdl_sv.node import Register
-
-WriteCallback = Callable[[int, int, int], None]
-AsyncWriteCallback = Callable[[int, int, int], Coroutine[None, None, None]]
-
-
-class CallbackSet:
-    """Class to hold a set of callbacks, this reduces the number of callback that need
-    to be passed around
-
-    :param write_callback: write regardless of space, defaults to None
-    :type write_callback: Optional[WriteCallback], optional
-    :param write_block_callback: write and block if no space, defaults to None
-    :type write_block_callback: Optional[AsyncWriteCallback], optional
-    """
-
-    __slots__ = ["_write_callback", "_write_block_callback"]
-
-    def __init__(
-        self,
-        write_callback: WriteCallback | None = None,
-        write_block_callback: AsyncWriteCallback | None = None,
-    ):
-        self._write_callback = write_callback
-        self._write_block_callback = write_block_callback
-
-    @property
-    def write_callback(self) -> WriteCallback | None:
-        """single non-blocking write callback function
-
-        :return: call back function
-        :rtype: Optional[WriteCallback]
-        """
-        return self._write_callback
-
-    @property
-    def write_block_callback(self) -> AsyncWriteCallback | None:
-        """single blocking write callback function
-
-        :return: call back function
-        :rtype: Optional[AsyncWriteCallback]
-        """
-        return self._write_block_callback
 
 
 class RegModel:
@@ -198,7 +155,7 @@ class RegModel:
 
             # one singular write
             else:
-                await self._callbacks.write_block_callback(
+                await self._callbacks.async_write_callback(
                     target.absolute_address,
                     self.get(reg_name),
                     **kwargs,
@@ -212,7 +169,7 @@ class RegModel:
 
             for address, value in self.split_value_over_fields(target, data):
                 # write the value
-                await self._callbacks.write_block_callback(
+                await self._callbacks.async_write_callback(
                     address,
                     value,
                     **kwargs,
@@ -221,7 +178,7 @@ class RegModel:
         async def write_literal_to_addressed_reg(reg_addr: int, data: int):
             """Writes a literal value to a register (or field) specified by an absolute
             address"""
-            await self._callbacks.write_block_callback(reg_addr, data, **kwargs)
+            await self._callbacks.async_write_callback(reg_addr, data, **kwargs)
 
         # if no data is provided we write the value in self._desired_value
         if data is None:
@@ -248,11 +205,15 @@ class RegModel:
 
         :param reg_name_or_addr: Register name or address to read from
         :type reg_name_or_addr: str | int
-        :raises NotImplementedError: Not yet implemented!
         :return: The value stored in the DUT register
         :rtype: int
         """
-        raise NotImplementedError(self.read)
+        addr = reg_name_or_addr
+        if isinstance(reg_name_or_addr, str):
+            addr = self.get_register_by_name(reg_name_or_addr).absolute_value
+        value = await self._callbacks.async_read_callback(addr)
+
+        return value
 
     # --------------------------------------------------------------------------------
     # UVM Register operations
