@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
 from typing import Callable
 from typing import Coroutine
+from typing import Generator
 
 import numpy as np
 from systemrdl import RDLCompiler
@@ -130,6 +132,34 @@ class RegModel:
         except KeyError:
             return None
 
+    def split_value_over_fields(
+        self,
+        target: Register,
+        value: int,
+    ) -> Generator[tuple[Any, int], Any, None]:
+        """Split a value over the fields of a register with correct masking depending
+        on the field location
+
+        :param target: The register to target
+        :type target: Register
+        :param value: The value to write to the registers
+        :type value: int
+        :yield: tuples of the field address and the value to write
+        :rtype: Generator[tuple[Any, int], Any, None]
+        """
+
+        # format the write value an `regwidth`-bit binary string
+        bits = f"{value:0{target.regwidth}b}"
+
+        # Extract the bits we are going to write and conver them to int
+        for field in target:
+            # get the slice indices of the field
+            lower = target.regwidth - field.msb - 1
+            upper = target.regwidth - field.lsb
+
+            # perform the slice (python slicing non inclusive)
+            yield (field.absolute_address, int(bits[lower:upper], 2))  # noqa: E203
+
     # --------------------------------------------------------------------------------
     # Generic read and write wrappers
     # --------------------------------------------------------------------------------
@@ -180,22 +210,11 @@ class RegModel:
 
             target = self.get_register_by_name(reg_name)
 
-            # format the write value an `targer-size`-bit binary string
-            bits = f"{data:0{target.regwidth}b}"
-
-            # Extract the bits we are going to write and conver them to int
-            for field in target:
-                # get the slice indices of the field
-                lower = target.regwidth - field.msb - 1
-                upper = target.regwidth - field.lsb
-
-                # perform the slice (python slicing non inclusive)
-                slice = int(bits[lower:upper], 2)
-
+            for address, value in self.split_value_over_fields(target, data):
                 # write the value
                 await self._callbacks.write_block_callback(
-                    field.absolute_address,
-                    slice,
+                    address,
+                    value,
                     **kwargs,
                 )  # noqa: E203
 
@@ -227,10 +246,10 @@ class RegModel:
     async def read(self, reg_name_or_addr: str | int) -> int:
         """Reads the value of the DUT register
 
-        :param reg_name_or_addr: _description_
+        :param reg_name_or_addr: Register name or address to read from
         :type reg_name_or_addr: str | int
-        :raises NotImplementedError: _description_
-        :return: _description_
+        :raises NotImplementedError: Not yet implemented!
+        :return: The value stored in the DUT register
         :rtype: int
         """
         raise NotImplementedError(self.read)
@@ -243,46 +262,34 @@ class RegModel:
         """Sets a the desired value of a register, does not perform a read of the DUT
         value
 
-        need to split the passed in value over the bits of the field
-        i.e. if you pass in 0xE6 and the register has format
+        This method will split the passed in value over the bits of the field
+        i.e. if you pass in 0xE5 == 0b11101010 and the register has the format
         reg {
             field {} data0 [1:0]
             field {} data1 [7:4]
         }
         then we'd have data0 = 2b10, data1 = 4b1110
 
-        :param reg_name: _description_
+        :param reg_name: The target register's name
         :type reg_name: str
-        :param value: _description_
+        :param value: The value to write to the register
         :type value: int
         """
         target = self.get_register_by_name(reg_name)
 
-        # format the write value an `targer-size`-bit binary string
-        bits = f"{value:0{target.regwidth}b}"
-
         # Extract the bits we are going to write and conver them to int
         masked_values = []
-        for field in target:
-            # get the slice indices of the field
-            lower = target.regwidth - field.msb - 1
-            upper = target.regwidth - field.lsb
-
-            # perform the slice (python slicing non inclusive)
-            slice = int(bits[lower:upper], 2)
-
-            # save the value
-            masked_values.append(slice)  # noqa: E203
+        for _, value in self.split_value_over_fields(target, value):
+            masked_values.append(value)
 
         # Write the values to the respective fields
         for idx, key in enumerate(self._desired_values[reg_name].keys()):
             self._desired_values[reg_name][key] = masked_values[idx]
 
     def set_field(self, reg_name: str, field_name: str, value: int) -> None:
-        """Updates the value of a field in the desired value and not the field value in
-        the DUT
+        """Updates the desired value  of a field
 
-        :param reg_name: The name of the register you are targeting
+        :param reg_name: The target register's name
         :type reg_name: str
         :param field_name: The name of the field to update
         :type field_name: str
@@ -297,11 +304,11 @@ class RegModel:
             ) from e
 
     def get(self, reg_name: str) -> int:
-        """Reads the desired value of a register
+        """Gets the desired value of a register
 
-        :param reg_name: _description_
+        :param reg_name: The target register's name
         :type reg_name: str
-        :return: _description_
+        :return: the register's value
         :rtype: int
         """
         target = self.get_register_by_name(reg_name)
@@ -317,10 +324,9 @@ class RegModel:
         return value
 
     def get_field(self, reg_name: str, field_name: str) -> int:
-        """Gets a a field value from the register desired value and not the field value
-        in the DUT
+        """Gets the desired value of a field
 
-        :param reg_name: The name of the register you are targeting
+        :param reg_name: The target register's name
         :type reg_name: str
         :param field_name: The name of the field to update
         :type field_name: str
@@ -337,7 +343,8 @@ class RegModel:
     def randomize(self, reg_name: str):
         """randomizes the value of a register
 
-        :raises NotImplementedError: _description_
+        :param reg_name: The name of the register to randomise
+        :type reg_name: str
         """
         target = self.get_register_by_name(reg_name)
         self.set(reg_name, np.random.randint(0, 1 << target.regwidth))
