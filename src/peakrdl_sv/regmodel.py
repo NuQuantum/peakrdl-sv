@@ -182,7 +182,6 @@ class RegModel:
 
             # format the write value an `targer-size`-bit binary string
             bits = f"{data:0{target.regwidth}b}"
-            print(f"Data: {bits}")
 
             # Extract the bits we are going to write and conver them to int
             for field in target:
@@ -341,7 +340,7 @@ class RegModel:
         :raises NotImplementedError: _description_
         """
         target = self.get_register_by_name(reg_name)
-        self.set(reg_name, np.random.randint(0, 1 << target.regwidth))  # TODO: fixme
+        self.set(reg_name, np.random.randint(0, 1 << target.regwidth))
 
     def reset(self, reg_name: str) -> None:
         """Resets the desired value of a register
