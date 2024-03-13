@@ -180,23 +180,25 @@ class RegModel:
 
             target = self.get_register_by_name(reg_name)
 
-            # write the register value as multiple <accesswidth> chunks
-            if target.regwidth > target.accesswidth:
-                mask = (1 << target.accesswidth) - 1
-                for i in range(target.subregs):
-                    await self._callbacks.write_block_callback(
-                        target.absolute_address + i,
-                        (data >> (target.accesswidth * i)) & mask,
-                        **kwargs,
-                    )
+            # format the write value an `targer-size`-bit binary string
+            bits = f"{data:0{target.regwidth}b}"
+            print(f"Data: {bits}")
 
-            # one singular write
-            else:
+            # Extract the bits we are going to write and conver them to int
+            for field in target:
+                # get the slice indices of the field
+                lower = target.regwidth - field.msb - 1
+                upper = target.regwidth - field.lsb
+
+                # perform the slice (python slicing non inclusive)
+                slice = int(bits[lower:upper], 2)
+
+                # write the value
                 await self._callbacks.write_block_callback(
-                    target.absolute_address,
-                    data,
+                    field.absolute_address,
+                    slice,
                     **kwargs,
-                )
+                )  # noqa: E203
 
         async def write_literal_to_addressed_reg(reg_addr: int, data: int):
             """Writes a literal value to a register (or field) specified by an absolute
@@ -263,8 +265,15 @@ class RegModel:
         # Extract the bits we are going to write and conver them to int
         masked_values = []
         for field in target:
-            upper, lower = field.get_cpuif_bit_slice().split(":")
-            masked_values.append(int(bits[int(lower) : int(upper)], 2))  # noqa: E203
+            # get the slice indices of the field
+            lower = target.regwidth - field.msb - 1
+            upper = target.regwidth - field.lsb
+
+            # perform the slice (python slicing non inclusive)
+            slice = int(bits[lower:upper], 2)
+
+            # save the value
+            masked_values.append(slice)  # noqa: E203
 
         # Write the values to the respective fields
         for idx, key in enumerate(self._desired_values[reg_name].keys()):
