@@ -9,8 +9,14 @@ from systemrdl.node import RegNode
 
 
 class Node(UserList):
-    def __init__(self, node: AddrmapNode | RegfileNode | RegNode | FieldNode) -> None:
+    def __init__(
+        self,
+        node: AddrmapNode | RegfileNode | RegNode | FieldNode,
+        parent: AddrmapNode | RegfileNode | RegNode | None,
+    ) -> None:
         self.node = node
+        if parent is not None:
+            self.parent = parent
         super().__init__()
 
     def __getattr__(self, item):

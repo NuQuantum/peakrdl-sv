@@ -107,7 +107,7 @@ class RegModel:
         # An empty dictionary which maps each reg name to a dictionary of field names
         # that maps to the field values
         return {
-            reg_name: dict.fromkeys([field.inst_name for field in reg.fields()], 0)
+            reg_name: dict.fromkeys([field.inst_name for field in reg], 0)
             for reg_name, reg in self._reg_map.items()
         }
 
@@ -162,7 +162,7 @@ class RegModel:
             if target.regwidth > target.accesswidth:
                 for desired, field in zip(
                     self._desired_values[reg_name].values(),
-                    target.fields(),
+                    target,
                 ):
                     await self.write(field.absolute_address, desired)
 
@@ -184,10 +184,9 @@ class RegModel:
             if target.regwidth > target.accesswidth:
                 mask = (1 << target.accesswidth) - 1
                 for i in range(target.subregs):
-                    write_data = data >> (target.accesswidth * i) | mask
                     await self._callbacks.write_block_callback(
-                        target.absolute_address,
-                        write_data,
+                        target.absolute_address + i,
+                        (data >> (target.accesswidth * i)) & mask,
                         **kwargs,
                     )
 
@@ -259,11 +258,11 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         # format the write value an `targer-size`-bit binary string
-        bits = f"{value:0{target.regwidth}b}"  # FIXME?
+        bits = f"{value:0{target.regwidth}b}"
 
         # Extract the bits we are going to write and conver them to int
         masked_values = []
-        for field in target.fields():
+        for field in target:
             upper, lower = field.get_cpuif_bit_slice().split(":")
             masked_values.append(int(bits[int(lower) : int(upper)], 2))  # noqa: E203
 
@@ -302,7 +301,7 @@ class RegModel:
         value = 0
         for desired, field in zip(
             self._desired_values[reg_name].values(),
-            target.fields(),
+            target,
         ):
             # shift in the value at the offset given by the actual field
             value = value | (desired << field.lsb)
@@ -344,7 +343,7 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         # get the field reset values
-        reset_values = [field.reset or 0 for field in target.fields()]
+        reset_values = [field.reset or 0 for field in target]
 
         # write each reset value to each field
         for idx, key in enumerate(self._desired_values[reg_name].keys()):
@@ -362,7 +361,7 @@ class RegModel:
 
         # get the reset value of the targeted field
         idx = self._desired_values[reg_name].keys().index(field_name)
-        reset_value = target.fields()[idx].reset or 0
+        reset_value = target[idx].reset or 0
 
         # set the reset value
         self._desired_values[reg_name][field_name] = reset_value
