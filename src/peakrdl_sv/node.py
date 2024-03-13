@@ -20,11 +20,10 @@ class Node(UserList):
     def name(self):
         return self.inst_name
 
-    @property
-    def path(self):
+    def path(self, hier_separator: str = "_"):
         return self.get_rel_path(
             self.owning_addrmap,
-            hier_separator="_",
+            hier_separator=hier_separator,
             array_suffix="_{index:d}",
         )
 
@@ -121,12 +120,12 @@ class Field(Node):
 class Register(Node):
     @property
     def accesswidth(self) -> int:
-        """Returns the SW access width in bytes."""
+        """Returns the SW access width in bits."""
         return self.get_property("accesswidth")
 
     @property
     def regwidth(self) -> int:
-        """Returns the width of the register in bytes."""
+        """Returns the width of the register in bits."""
         return self.get_property("regwidth")
 
     @property
@@ -161,7 +160,7 @@ class Register(Node):
         """
         return self.regwidth // self.accesswidth
 
-    def get_subreg_fields(self, subreg: int):
+    def get_subreg_fields(self, subreg: int) -> list[Field]:
         """Returns a list of fields that are present in a sub-register."""
         fields = []
         for f in self:
@@ -175,7 +174,26 @@ class RegisterFile(Node):
 
 
 class AddressMap(Node):
+    def get_register_files(self) -> list[RegisterFile]:
+        """Returns a list of all the register files in an address map
+
+        :return: The list of register files in the address map
+        :rtype: list[RegisterFile]
+        """
+        reg_files = []
+        for child in enumerate(self):
+            if isinstance(child, RegisterFile):
+                reg_files.append(child)
+        return reg_files
+
     def get_registers(self) -> list[Register]:
+        """Returns a list of all registers from all levels of hierarchy in the address
+        map
+
+        :return: The list of registers in the address map
+        :rtype: list[Register]
+        """
+
         def get_child_regs(child, regs):
             if isinstance(child, (AddressMap, Field)):
                 raise RuntimeError(

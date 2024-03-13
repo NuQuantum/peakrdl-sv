@@ -7,5 +7,11 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
 
-  }
+  },
+  "favorites.resources": [
+    {
+      "filePath": "src/peakrdl_sv/regmodel.py",
+      "group": "Default"
+    }
+  ]
 }
