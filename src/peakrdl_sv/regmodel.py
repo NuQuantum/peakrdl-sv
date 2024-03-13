@@ -67,7 +67,6 @@ class RegModel:
         self._top_node: AddressMap = self._parse_rdl(rdlfile)
         self._reg_map = self._map_registers()
         self._desired_values = self._map_fields()
-        self._mirrored_values = self._map_fields()
 
     # --------------------------------------------------------------------------------
     # Initialisation
