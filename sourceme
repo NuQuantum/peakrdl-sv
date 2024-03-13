@@ -1,3 +1,4 @@
+DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 VENV=.venv
 
 if [[ ! -e $VENV ]]; then
@@ -8,5 +9,7 @@ if [[ ! -e $VENV ]]; then
 else
     source $VENV/bin/activate
 fi
+
+export PYTHONPATH=$PYTHONPATH:$DIR/src/
 
 pre-commit install

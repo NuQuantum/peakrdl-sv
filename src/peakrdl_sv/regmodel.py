@@ -92,10 +92,10 @@ class RegModel:
         }
 
     def _map_fields(self) -> dict[str, dict[str, int]]:
-        """Builds the desired value dictionary
+        """Maps register names to dictionaries of fields which maps to (desired) values
 
-        :raises AttributeError: _description_
-        :return: _description_
+        :raises AttributeError: _map_fields called before _map_registers
+        :return: A dict of {register names : dict of {field names : values}}
         :rtype: Dict[str, Dict[str, int]]
         """
 
@@ -103,10 +103,11 @@ class RegModel:
             raise AttributeError(
                 "Must call self._map_registers() before self._map_desired_values()",
             )
+
         # An empty dictionary which maps each reg name to a dictionary of field names
         # that maps to the field values
         return {
-            reg_name: dict.fromkeys([field.name for field in reg.fields()])
+            reg_name: dict.fromkeys([field.inst_name for field in reg.fields()], 0)
             for reg_name, reg in self._reg_map.items()
         }
 
