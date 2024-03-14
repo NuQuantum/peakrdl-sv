@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 from typing import Generator
 
@@ -11,6 +12,12 @@ from peakrdl_sv.listener import Listener
 from peakrdl_sv.node import AddressMap
 from peakrdl_sv.node import Field
 from peakrdl_sv.node import Register
+
+
+@dataclass
+class FieldWrapper:
+    field: Field
+    value: int
 
 
 class RegModel:
@@ -54,7 +61,7 @@ class RegModel:
             register.path("."): register for register in self._top_node.get_registers()
         }
 
-    def _map_fields(self) -> dict[str, dict[str, int]]:
+    def _map_fields(self) -> dict[str, dict[str, FieldWrapper]]:
         """Maps register names to dictionaries of fields which maps to (desired) values
 
         :raises AttributeError: _map_fields called before _map_registers
@@ -68,7 +75,7 @@ class RegModel:
             )
 
         return {
-            reg_name: dict.fromkeys([field.inst_name for field in reg], 0)
+            reg_name: {field.inst_name: FieldWrapper(field, 0) for field in reg}
             for reg_name, reg in self._reg_map.items()
         }
 
@@ -143,13 +150,10 @@ class RegModel:
 
             # write the register value as multiple `accesswidth` chunks
             if target.regwidth > target.accesswidth:
-                for desired, field in zip(
-                    self._desired_values[reg_name].values(),
-                    target,
-                ):
+                for field in target:
                     await self._callbacks.async_write_callback(
                         field.absolute_address,
-                        desired,
+                        self._desired_values[reg_name][field.inst_name].value,
                         **kwargs,
                     )
 
@@ -262,8 +266,8 @@ class RegModel:
             masked_values.append(value)
 
         # Write the values to the respective fields
-        for idx, key in enumerate(self._desired_values[reg_name].keys()):
-            self._desired_values[reg_name][key] = masked_values[idx]
+        for idx, field in enumerate(target):
+            self._desired_values[reg_name][field.inst_name].value = masked_values[idx]
 
     def set_field(self, reg_name: str, field_name: str, value: int) -> None:
         """Sets the desired value of a field
@@ -276,7 +280,7 @@ class RegModel:
         :type value: int
         """
         try:
-            self._desired_values[reg_name][field_name] = value
+            self._desired_values[reg_name][field_name].value = value
         except KeyError as e:
             raise Exception(
                 f"The specified field ({reg_name}.{field_name}) does not exist!"
@@ -294,12 +298,10 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         value = 0
-        for desired, field in zip(
-            self._desired_values[reg_name].values(),
-            target,
-        ):
+        for field in target:
             # shift in the value at the offset given by the actual field
-            value = value | (desired << field.lsb)
+            part = self._desired_values[reg_name][field.inst_name].value << field.lsb
+            value = value | part
 
         return value
 
@@ -314,7 +316,7 @@ class RegModel:
         :rtype: int
         """
         try:
-            return self._desired_values[reg_name][field_name]
+            return self._desired_values[reg_name][field_name].value
         except KeyError as e:
             raise Exception(
                 f"The specified field ({reg_name}.{field_name}) does not exist!"
@@ -338,12 +340,9 @@ class RegModel:
         """
         target = self.get_register_by_name(reg_name)
 
-        # get the field reset values
-        reset_values = [field.reset or 0 for field in target]
-
         # write each reset value to each field
-        for idx, key in enumerate(self._desired_values[reg_name].keys()):
-            self._desired_values[reg_name][key] = reset_values[idx]
+        for field in target:
+            self._desired_values[reg_name][field.inst_name].value = field.reset or 0
 
     def reset_field(self, reg_name: str, field_name: str) -> None:
         """Resets the desired value of a field within a register
@@ -353,11 +352,7 @@ class RegModel:
         :param field_name: The field you wish to reset
         :type field_name: str
         """
-        target = self.get_register_by_name(reg_name)
-
-        # get the reset value of the targeted field
-        idx = self._desired_values[reg_name].keys().index(field_name)
-        reset_value = target[idx].reset or 0
+        target = self._desired_values[reg_name][field_name]
 
         # set the reset value
-        self._desired_values[reg_name][field_name] = reset_value
+        target.value = target.field.reset or 0
