@@ -21,11 +21,12 @@ class RegModel:
     :type callbacks: CallbackSet
     """
 
-    def __init__(self, rdlfile: str, callbacks: CallbackSet):
+    def __init__(self, rdlfile: str, callbacks: CallbackSet, log):
         self._callbacks = callbacks
         self._top_node: AddressMap = self._parse_rdl(rdlfile)
         self._reg_map = self._map_registers()
         self._desired_values = self._map_fields()
+        self._log = log
 
     # --------------------------------------------------------------------------------
     # Initialisation
@@ -87,6 +88,7 @@ class RegModel:
         try:
             return self._reg_map[reg_name]
         except KeyError:
+            self._log.info(f"Could not find register in {self._reg_map.keys()}")
             return None
 
     def split_value_over_fields(
@@ -123,20 +125,17 @@ class RegModel:
 
     async def write(
         self,
-        reg_name_or_addr: str | int,
+        reg_name: str,
         data: int | None = None,
         **kwargs,
     ) -> None:
-        """Writes the value of the DUT register. Three options for calling:
+        """Writes the value of the DUT register. two options for calling:
 
-        (1) absolute addr + data -> write to absolute address a particular value
-        (2) register name + data -> write to named register a particular value
-        (3) register name -> write desired value to a named register
+        (1) register name + data -> write to named register a particular value
+        (2) register name -> write desired value to a named register
 
-        TODO: a write should also updated the desired value if it is different
-
-        :param reg_name_or_addr: Register name or address to write to
-        :type reg_name_or_addr: str | int
+        :param reg_name: Register name to write to
+        :type reg_name: str | int
         :param data: Data to write to register, defaults to None
         :type data: int | None, optional
         :raises TypeError: non int or string `reg_name_or_addr`
@@ -153,7 +152,11 @@ class RegModel:
                     self._desired_values[reg_name].values(),
                     target,
                 ):
-                    await self.write(field.absolute_address, desired)
+                    await self._callbacks.async_write_callback(
+                        field.absolute_address,
+                        desired,
+                        **kwargs,
+                    )
 
             # one singular write
             else:
@@ -177,30 +180,22 @@ class RegModel:
                     **kwargs,
                 )  # noqa: E203
 
-        async def write_literal_to_addressed_reg(reg_addr: int, data: int):
-            """Writes a literal value to a register (or field) specified by an absolute
-            address"""
-            await self._callbacks.async_write_callback(reg_addr, data, **kwargs)
-
         # if no data is provided we write the value in self._desired_value
         if data is None:
             assert isinstance(
-                reg_name_or_addr,
+                reg_name,
                 str,
             ), "Must provide register name when writing without explicit data"
 
-            await write_desired_to_named_reg(reg_name_or_addr)
+            await write_desired_to_named_reg(reg_name)
 
         # otherwise we write the data provided by the user
         else:
-            if isinstance(reg_name_or_addr, str):
-                await write_literal_to_named_reg(reg_name_or_addr, data)
-            elif isinstance(reg_name_or_addr, int):
-                await write_literal_to_addressed_reg(reg_name_or_addr, data)
-            else:
-                raise TypeError(
-                    f"Incorrect type {type(reg_name_or_addr)} passed to write()",
-                )
+            await write_literal_to_named_reg(reg_name, data)
+
+            # update the desired value - definitely a register (cannot write field by
+            # name)
+            self.set(reg_name, data)
 
     async def read(self, reg_name_or_addr: str | int) -> int:
         """Reads the value of the DUT register
