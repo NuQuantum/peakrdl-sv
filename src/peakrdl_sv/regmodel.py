@@ -133,6 +133,8 @@ class RegModel:
         (2) register name + data -> write to named register a particular value
         (3) register name -> write desired value to a named register
 
+        TODO: a write should also updated the desired value if it is different
+
         :param reg_name_or_addr: Register name or address to write to
         :type reg_name_or_addr: str | int
         :param data: Data to write to register, defaults to None
@@ -210,9 +212,9 @@ class RegModel:
         """
         addr = reg_name_or_addr
         if isinstance(reg_name_or_addr, str):
-            addr = self.get_register_by_name(reg_name_or_addr).absolute_value
-        value = await self._callbacks.async_read_callback(addr)
+            addr = self.get_register_by_name(reg_name_or_addr).absolute_address
 
+        value = await self._callbacks.async_read_callback(addr)
         return value
 
     # --------------------------------------------------------------------------------
