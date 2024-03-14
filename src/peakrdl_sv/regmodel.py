@@ -67,8 +67,8 @@ class RegModel:
         """Maps register names to dictionaries of fields which maps to (desired) values
 
         :raises AttributeError: _map_fields called before _map_registers
-        :return: A dict of {register names : dict of {field names : values}}
-        :rtype: Dict[str, Dict[str, int]]
+        :return: A dict of {register names : dict of {field names : (field, value)}}
+        :rtype: Dict[str, Dict[str, FieldWrapper]]
         """
 
         if not hasattr(self, "_reg_map"):
