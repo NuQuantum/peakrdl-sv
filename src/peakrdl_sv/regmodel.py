@@ -16,6 +16,8 @@ from peakrdl_sv.node import Register
 
 @dataclass
 class FieldWrapper:
+    """Wraps a Field by storing along side it a (desired) value"""
+
     field: Field
     value: int
 
