@@ -67,8 +67,6 @@ class RegModel:
                 "Must call self._map_registers() before self._map_desired_values()",
             )
 
-        # An empty dictionary which maps each reg name to a dictionary of field names
-        # that maps to the field values
         return {
             reg_name: dict.fromkeys([field.inst_name for field in reg], 0)
             for reg_name, reg in self._reg_map.items()
@@ -82,9 +80,9 @@ class RegModel:
         """Gets a register by its relative path name, '.' separated per tier of the
         hierarchy
 
-        :param reg_name: The register name as a . separater string
+        :param reg_name: The register name as a . separated string
         :type reg_name: str
-        :return: the target register, None if the register name is not found in the
+        :return: The target register, None if the register name is not found in the
         regmap
         :rtype: Register | None
         """
@@ -126,13 +124,8 @@ class RegModel:
     # Generic read and write wrappers
     # --------------------------------------------------------------------------------
 
-    async def write(
-        self,
-        reg_name: str,
-        data: int | None = None,
-        **kwargs,
-    ) -> None:
-        """Writes the value of the DUT register. two options for calling:
+    async def write(self, reg_name: str, data: int | None = None, **kwargs) -> None:
+        """Writes the value of the DUT register. Two options for calling:
 
         (1) register name + data -> write to named register a particular value
         (2) register name -> write desired value to a named register
@@ -148,7 +141,7 @@ class RegModel:
 
             target = self.get_register_by_name(reg_name)
 
-            # write the register value as multiple <accesswidth> chunks
+            # write the register value as multiple `accesswidth` chunks
             if target.regwidth > target.accesswidth:
                 for desired, field in zip(
                     self._desired_values[reg_name].values(),
@@ -188,19 +181,16 @@ class RegModel:
                 reg_name,
                 str,
             ), "Must provide register name when writing without explicit data"
-
             await write_desired_to_named_reg(reg_name)
 
         # otherwise we write the data provided by the user
         else:
             await write_literal_to_named_reg(reg_name, data)
-
-            # update the desired value - definitely a register (cannot write field by
-            # name)
+            # update the desired value
             self.set(reg_name, data)
 
     async def read(self, reg_name: str, field_name: str | None = None) -> int:
-        """Reads the value of the DUT register or field
+        """Reads the value of a register or field from the DUT
 
         :param reg_name: The register name to read from
         :type reg_name: str
@@ -240,11 +230,9 @@ class RegModel:
             return value >> target_field.lsb
 
         if field_name is None:
-            result = await read_register(target)
-            return result
+            return await read_register(target)
         else:
-            result = await read_field(target, field_name)
-            return result
+            return await read_field(target, field_name)
 
     # --------------------------------------------------------------------------------
     # UVM Register operations
@@ -255,7 +243,7 @@ class RegModel:
 
         This method will split the passed in value over the bits of the field
         i.e. if you pass in 0xE5 == 0b11101010 and the register has the format
-        reg {
+        reg my_reg {
             field {} data0 [1:0]
             field {} data1 [7:4]
         }
@@ -329,12 +317,12 @@ class RegModel:
             return self._desired_values[reg_name][field_name]
         except KeyError as e:
             raise Exception(
-                f"The specified field (]{reg_name}.{field_name}) does not exist!"
+                f"The specified field ({reg_name}.{field_name}) does not exist!"
                 f" ({self._desired_values.keys()})",
             ) from e
 
     def randomize(self, reg_name: str):
-        """randomizes the value of a register
+        """Randomizes the value of a register
 
         :param reg_name: The name of the register to randomise
         :type reg_name: str
