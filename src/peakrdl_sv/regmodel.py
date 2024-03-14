@@ -9,16 +9,19 @@ from systemrdl import RDLCompiler
 from peakrdl_sv.callbacks import CallbackSet
 from peakrdl_sv.listener import Listener
 from peakrdl_sv.node import AddressMap
+from peakrdl_sv.node import Field
 from peakrdl_sv.node import Register
 
 
 class RegModel:
     """Register Abstraction Layer Model
 
-    :param rdlfile: the rdl file from which we create the model
+    :param rdlfile: The rdl file from which we create the model
     :type rdlfile: str
-    :param callbacks: the set of coco.tb callbacks to perform read/write operations
+    :param callbacks: The set of coco.tb callbacks to perform read/write operations
     :type callbacks: CallbackSet
+    :param log: A logger
+    :type log: Any
     """
 
     def __init__(self, rdlfile: str, callbacks: CallbackSet, log):
@@ -138,7 +141,6 @@ class RegModel:
         :type reg_name: str | int
         :param data: Data to write to register, defaults to None
         :type data: int | None, optional
-        :raises TypeError: non int or string `reg_name_or_addr`
         """
 
         async def write_desired_to_named_reg(reg_name: str):
@@ -197,28 +199,59 @@ class RegModel:
             # name)
             self.set(reg_name, data)
 
-    async def read(self, reg_name_or_addr: str | int) -> int:
-        """Reads the value of the DUT register
+    async def read(self, reg_name: str, field_name: str | None = None) -> int:
+        """Reads the value of the DUT register or field
 
-        :param reg_name_or_addr: Register name or address to read from
-        :type reg_name_or_addr: str | int
-        :return: The value stored in the DUT register
+        :param reg_name: The register name to read from
+        :type reg_name: str
+        :param field_name: The field name to read from, defaults to None
+        :type field_name: str | None, optional
+        :return: The value read from the DUT
         :rtype: int
         """
-        addr = reg_name_or_addr
-        if isinstance(reg_name_or_addr, str):
-            addr = self.get_register_by_name(reg_name_or_addr).absolute_address
 
-        value = await self._callbacks.async_read_callback(addr)
-        return value
+        target = self.get_register_by_name(reg_name)
+
+        async def read_register(target: Register) -> int:
+            """Reads a register, including all fields"""
+
+            result = 0
+            for i, field in enumerate(target):
+                addr = field.absolute_address
+                value = await self._callbacks.async_read_callback(addr)
+                result = result | (value << (target.accesswidth * i))
+            return result
+
+        async def read_field(target: Register, field_name: str) -> int:
+            """Reads an individual field from a regster and references to 0"""
+
+            def get_target_field(target: Register) -> Field:
+                for field in target:
+                    if field.inst_name == field_name:
+                        return field
+
+            # find the field absolute address
+            target_field = get_target_field(target)
+
+            # perform the read
+            addr = target_field.absolute_address
+            value = await self._callbacks.async_read_callback(addr)
+
+            return value >> target_field.lsb
+
+        if field_name is None:
+            result = await read_register(target)
+            return result
+        else:
+            result = await read_field(target, field_name)
+            return result
 
     # --------------------------------------------------------------------------------
     # UVM Register operations
     # --------------------------------------------------------------------------------
 
     def set(self, reg_name: str, value: int) -> None:
-        """Sets a the desired value of a register, does not perform a read of the DUT
-        value
+        """Sets a the desired value of a register
 
         This method will split the passed in value over the bits of the field
         i.e. if you pass in 0xE5 == 0b11101010 and the register has the format
@@ -245,7 +278,7 @@ class RegModel:
             self._desired_values[reg_name][key] = masked_values[idx]
 
     def set_field(self, reg_name: str, field_name: str, value: int) -> None:
-        """Updates the desired value  of a field
+        """Sets the desired value of a field
 
         :param reg_name: The target register's name
         :type reg_name: str
@@ -258,7 +291,8 @@ class RegModel:
             self._desired_values[reg_name][field_name] = value
         except KeyError as e:
             raise Exception(
-                f"The specified field ({reg_name}.{field_name}) does not exist!",
+                f"The specified field ({reg_name}.{field_name}) does not exist!"
+                f" ({self._desired_values.keys()})",
             ) from e
 
     def get(self, reg_name: str) -> int:
@@ -295,7 +329,8 @@ class RegModel:
             return self._desired_values[reg_name][field_name]
         except KeyError as e:
             raise Exception(
-                f"The specified field ({reg_name}.{field_name}) does not exist!",
+                f"The specified field (]{reg_name}.{field_name}) does not exist!"
+                f" ({self._desired_values.keys()})",
             ) from e
 
     def randomize(self, reg_name: str):
