@@ -77,7 +77,9 @@ class RegModel:
             )
 
         return {
-            reg_name: {field.inst_name: FieldWrapper(field, 0) for field in reg}
+            reg_name: {
+                field.inst_name: FieldWrapper(field, field.reset or 0) for field in reg
+            }
             for reg_name, reg in self._reg_map.items()
         }
 
@@ -226,7 +228,7 @@ class RegModel:
                     if field.inst_name == field_name:
                         return field
 
-            # find the field absolute address
+            # find the field
             target_field = get_target_field(target)
 
             # perform the read

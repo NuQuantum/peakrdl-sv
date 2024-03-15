@@ -13,10 +13,14 @@ class CallbackSet:
     """Class to hold a set of callbacks, this reduces the number of callback that need
     to be passed around
 
-    :param write_callback: write regardless of space, defaults to None
-    :type write_callback: Optional[WriteCallback], optional
-    :param async_write_callback: write and block if no space, defaults to None
-    :type async_write_callback: Optional[AsyncWriteCallback], optional
+        :param write_callback: write regardless of space, defaults to None
+        :type write_callback: WriteCallback | None, optional
+        :param async_write_callback: write and block if no space, defaults to None
+        :type async_write_callback: AsyncWriteCallback | None, optional
+        :param read_callback: read regardless of emptyness, defaults to None
+        :type read_callback: ReadCallback | None, optional
+        :param async_read_callback: read and block if empty, defaults to None
+        :type async_read_callback: AsyncReadCallback | None, optional
     """
 
     __slots__ = [
