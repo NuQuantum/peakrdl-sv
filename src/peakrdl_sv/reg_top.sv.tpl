@@ -205,7 +205,7 @@ module ${lblock}_reg_top
 <%
     base_idx = reg_enables[r.path.lower()]['idx']
 %>\
-    % for i in range(len(r)):
+    % for i in range(r.subregs):
 <%
     justified = "{}".format(base_idx+i).rjust(max_regs_char)
     param = f"{ublock}_{r.path.upper()}_" + (f"{i}_" if r.is_wide else "") + "OFFSET"

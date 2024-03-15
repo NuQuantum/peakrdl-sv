@@ -12,7 +12,7 @@ VERILOG_SOURCES += $(PWD)/rtl/test_reg_top.sv
 TOPLEVEL = test_reg_top
 MODULE = test
 
-CUSTOM_COMPILE_DEPS = rtl python
+CUSTOM_COMPILE_DEPS = rtl
 
 ifeq (SIM, verilator)
 ifeq (WAVES, 1)
@@ -27,7 +27,3 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 rtl:
 	peakrdl sv -o rtl addrmap.rdl
 	sv-exporter -o rtl install
-
-.PHONY: python
-python:
-	peakrdl python -o python addrmap.rdl
