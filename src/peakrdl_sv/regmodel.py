@@ -153,6 +153,12 @@ class RegModel:
         :type data: int | None, optional
         """
 
+        if isinstance(field_name, int):
+            self._log.warning(
+                "You passed an int to the `field_name` argument of write(), this is"
+                " probably a mistake, try calling with data=`value`",
+            )
+
         async def write_desired_to_named_reg(reg_name: str):
             """Writes a desired register value to the DUT"""
 
@@ -256,19 +262,26 @@ class RegModel:
         async def read_field(target: Register, field_name: str) -> int:
             """Reads an individual field from a regster and references to 0"""
 
-            def get_target_field(target: Register) -> Field:
+            def get_target_field(target: Register) -> Field | None:
                 for field in target:
                     if field.inst_name == field_name:
                         return field
+                return None
 
             # find the field
             target_field = get_target_field(target)
+            if target_field is None:
+                raise ValueError(f"Could not find field in register ({target.name})")
 
             # perform the read
             addr = target_field.absolute_address
             value = await self._callbacks.async_read_callback(addr)
 
-            return value >> target_field.lsb
+            # if the field width is < access width we need to refer it to zero
+            if target_field.width < target.accesswidth:
+                return value >> target_field.lsb
+
+            return value
 
         if field_name is None:
             return await read_register(target)
