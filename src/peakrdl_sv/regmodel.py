@@ -135,7 +135,13 @@ class RegModel:
     # Generic read and write wrappers
     # --------------------------------------------------------------------------------
 
-    async def write(self, reg_name: str, data: int | None = None, **kwargs) -> None:
+    async def write(
+        self,
+        reg_name: str,
+        field_name: str | None = None,
+        data: int | None = None,
+        **kwargs,
+    ) -> None:
         """Writes the value of the DUT register. Two options for calling:
 
         (1) register name + data -> write to named register a particular value
@@ -148,7 +154,7 @@ class RegModel:
         """
 
         async def write_desired_to_named_reg(reg_name: str):
-            """Writes a desired value to the DUT"""
+            """Writes a desired register value to the DUT"""
 
             target = self.get_register_by_name(reg_name)
 
@@ -157,7 +163,7 @@ class RegModel:
                 for field in target:
                     await self._callbacks.async_write_callback(
                         field.absolute_address,
-                        self._desired_values[reg_name][field.inst_name].value,
+                        self.get_field(reg_name, field.inst_name),
                         **kwargs,
                     )
 
@@ -169,13 +175,23 @@ class RegModel:
                     **kwargs,
                 )
 
-        async def write_literal_to_named_reg(reg_name: str, data: int):
-            """Writes a literal value to a register specified by name or absolute
-            address"""
+        async def write_desired_to_named_field(reg_name: str, field_name: str):
+            """Writes a desired field value to the DUT"""
+
+            target = self._desired_values[reg_name][field_name]
+
+            await self._callbacks.async_write_callback(
+                target.field.absolute_address,
+                self.get_field(reg_name, field_name),
+                **kwargs,
+            )
+
+        async def write_literal_to_named_reg(reg_name: str, value: int):
+            """Writes a literal value to a register specified by name"""
 
             target = self.get_register_by_name(reg_name)
 
-            for address, value in self.split_value_over_fields(target, data):
+            for address, value in self.split_value_over_fields(target, value):
                 # write the value
                 await self._callbacks.async_write_callback(
                     address,
@@ -183,19 +199,36 @@ class RegModel:
                     **kwargs,
                 )  # noqa: E203
 
+        async def write_literal_to_named_field(
+            reg_name: str,
+            field_name: str,
+            value: int,
+        ):
+            """Writes a literal value to a field specified by name"""
+
+            target = self._desired_values[reg_name][field_name]
+
+            await self._callbacks.async_write_callback(
+                target.field.absolute_address,
+                value,
+                **kwargs,
+            )
+
         # if no data is provided we write the value in self._desired_value
         if data is None:
-            assert isinstance(
-                reg_name,
-                str,
-            ), "Must provide register name when writing without explicit data"
-            await write_desired_to_named_reg(reg_name)
+            if field_name is None:
+                await write_desired_to_named_reg(reg_name)
+            else:
+                await write_desired_to_named_field(reg_name, field_name)
 
         # otherwise we write the data provided by the user
         else:
-            await write_literal_to_named_reg(reg_name, data)
-            # update the desired value
-            self.set(reg_name, data)
+            if field_name is None:
+                await write_literal_to_named_reg(reg_name, data)
+                self.set(reg_name, data)
+            else:
+                await write_literal_to_named_field(reg_name, field_name, data)
+                self.set_field(reg_name, field_name, data)
 
     async def read(self, reg_name: str, field_name: str | None = None) -> int:
         """Reads the value of a register or field from the DUT
