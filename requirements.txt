@@ -1,3 +1,4 @@
 peakrdl
 mako
 pre-commit
+cocotb
