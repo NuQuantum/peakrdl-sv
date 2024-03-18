@@ -30,7 +30,7 @@ package ${lname}_reg_pkg;
     logic re;
     % endif
   % else:
-    % for f in r:
+    % for f in reversed(r):
     struct packed {
       logic ${sv_bitarray(f)}q;
       % if f.needs_qe:
@@ -53,7 +53,7 @@ package ${lname}_reg_pkg;
     logic ${sv_bitarray(r[0])} d;
     logic de;
     % else:
-    % for f in r:
+    % for f in reversed(r):
     struct packed {
       logic ${sv_bitarray(f)} d;
       logic de;

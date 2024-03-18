@@ -2,3 +2,4 @@ peakrdl
 mako
 pre-commit
 numpy
+cocotb

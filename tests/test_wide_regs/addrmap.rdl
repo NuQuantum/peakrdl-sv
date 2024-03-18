@@ -19,10 +19,33 @@ addrmap test {
     field {} f1[1];
     field {} f2[6:4];
   };
+  
+  reg r4 {
+    regwidth = 32;
+    field {} data0[7:0];
+    field {} data1[15:8];
+    field {} data2[23:16];
+    field {} data3[31:24];
+  };
+  
+  reg r5 {
+    regwidth = 16;
+    field {} f0[0:0];
+    field {} f1[1:1];
+    field {} f2[2:2];
+    field {} f3[3:3];
+    field {} f4[4:4];
+    field {} f5[5:5];
+    field {} f6[6:6];
+    field {} f7[7:7];
+    field {} f8[8:15];
+  };
+
 
   r1 r1_single   @ 0;
   r1 r1_array[4] @ 2;
   r2 r2_single   @ 18;
   r3 r3_notwide  @ 20;
-
+  r4 r4          @ 21;
+  r5 r5          @ 22;
 };

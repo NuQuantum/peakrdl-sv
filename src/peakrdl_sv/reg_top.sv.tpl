@@ -206,7 +206,7 @@ module ${lblock}_reg_top
     write_enables = reg_enables[r.path().lower()]['we']
     base_idx = reg_enables[r.path().lower()]['idx']
 %>\
-    % for i,enable in enumerate(write_enables):
+    % for i in range(r.subregs):
 <%
     justified = "{}".format(base_idx+i).rjust(max_regs_char)
     param = f"{ublock}_{r.path().upper()}_" + (f"{i}_" if r.is_wide else "") + "OFFSET"
