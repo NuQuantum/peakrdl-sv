@@ -12,10 +12,12 @@ class Node(UserList):
     def __init__(
         self,
         node: AddrmapNode | RegfileNode | RegNode | FieldNode,
-        parent: AddrmapNode | RegfileNode | RegNode | None,
+        parent: AddressMap | RegisterFile | Register | None,
     ) -> None:
         self.node = node
-        if parent is not None:
+        if parent is None:
+            assert isinstance(node, AddressMap), "Root node must be of type AddressMap"
+        else:
             self.parent = parent
         super().__init__()
 
