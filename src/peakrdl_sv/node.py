@@ -16,7 +16,10 @@ class Node(UserList):
     ) -> None:
         self.node = node
         if parent is None:
-            assert isinstance(node, AddressMap), "Root node must be of type AddressMap"
+            assert isinstance(
+                node,
+                AddrmapNode,
+            ), f"Root node must be of type AddrmapNode, not {type(node)}"
         else:
             self.parent = parent
         super().__init__()
