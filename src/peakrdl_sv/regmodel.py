@@ -70,18 +70,18 @@ class RegModel:
         :return: A dict of {register names : dict of {field names : (field, value)}}
         :rtype: Dict[str, Dict[str, FieldWrapper]]
         """
-
-        if not hasattr(self, "_reg_map"):
-            raise AttributeError(
-                "Must call self._map_registers() before self._map_desired_values()",
-            )
-
-        return {
-            reg_name: {
-                field.inst_name: FieldWrapper(field, field.reset or 0) for field in reg
+        try:
+            return {
+                reg_name: {
+                    field.inst_name: FieldWrapper(field, field.reset or 0)
+                    for field in reg
+                }
+                for reg_name, reg in self._reg_map.items()
             }
-            for reg_name, reg in self._reg_map.items()
-        }
+        except AttributeError as e:
+            raise Exception(
+                "Must call self._map_registers() before self._map_fields()",
+            ) from e
 
     # --------------------------------------------------------------------------------
     # Utilities
@@ -119,10 +119,10 @@ class RegModel:
         :rtype: Generator[tuple[Any, int], Any, None]
         """
 
-        # format the write value an `regwidth`-bit binary string
+        # format the write value as a `regwidth`-bit binary string
         bits = f"{value:0{target.regwidth}b}"
 
-        # Extract the bits we are going to write and conver them to int
+        # Extract the bits we are going to write and convert them to int
         for field in target:
             # get the slice indices of the field
             lower = target.regwidth - field.msb - 1
@@ -131,6 +131,20 @@ class RegModel:
             # perform the slice (python slicing non inclusive)
             yield (field.absolute_address, int(bits[lower:upper], 2))  # noqa: E203
 
+    def align_to_field(self, target: Field, value: int) -> int:
+        """Aligns a value to a field's LSB with consideration for the fields offset in
+        the register
+
+        :param target: The field the `value` should be aligned to
+        :type target: Field
+        :param value: The value to write
+        :type value: int
+        :return: The aligned value
+        :rtype: int
+        """
+        resolved_lsb = target.lsb % target.parent.accesswidth
+        return value << resolved_lsb
+
     # --------------------------------------------------------------------------------
     # Generic read and write wrappers
     # --------------------------------------------------------------------------------
@@ -138,7 +152,6 @@ class RegModel:
     async def write(
         self,
         reg_name: str,
-        field_name: str | None = None,
         data: int | None = None,
         **kwargs,
     ) -> None:
@@ -153,88 +166,39 @@ class RegModel:
         :type data: int | None, optional
         """
 
-        if isinstance(field_name, int):
-            self._log.warning(
-                "You passed an int to the `field_name` argument of write(), this is"
-                " probably a mistake, try calling with data=`value`",
-            )
-
         async def write_desired_to_named_reg(reg_name: str):
             """Writes a desired register value to the DUT"""
 
             target = self.get_register_by_name(reg_name)
 
-            # write the register value as multiple `accesswidth` chunks
-            if target.regwidth > target.accesswidth:
-                for field in target:
-                    await self._callbacks.async_write_callback(
-                        field.absolute_address,
-                        self.get_field(reg_name, field.inst_name),
-                        **kwargs,
-                    )
-
-            # one singular write
-            else:
+            for field in target:
+                value = self.get_field(reg_name, field.inst_name)
                 await self._callbacks.async_write_callback(
-                    target.absolute_address,
-                    self.get(reg_name),
+                    field.absolute_address,
+                    self.align_to_field(field, value),
                     **kwargs,
                 )
 
-        async def write_desired_to_named_field(reg_name: str, field_name: str):
-            """Writes a desired field value to the DUT"""
-
-            target = self._desired_values[reg_name][field_name]
-
-            await self._callbacks.async_write_callback(
-                target.field.absolute_address,
-                self.get_field(reg_name, field_name),
-                **kwargs,
-            )
-
         async def write_literal_to_named_reg(reg_name: str, value: int):
-            """Writes a literal value to a register specified by name"""
+            """Writes a literal value to a register specified by name, no alignment
+            required as we assume this is handled by the caller"""
 
             target = self.get_register_by_name(reg_name)
 
             for address, value in self.split_value_over_fields(target, value):
-                # write the value
                 await self._callbacks.async_write_callback(
                     address,
                     value,
                     **kwargs,
-                )  # noqa: E203
-
-        async def write_literal_to_named_field(
-            reg_name: str,
-            field_name: str,
-            value: int,
-        ):
-            """Writes a literal value to a field specified by name"""
-
-            target = self._desired_values[reg_name][field_name]
-
-            await self._callbacks.async_write_callback(
-                target.field.absolute_address,
-                value,
-                **kwargs,
-            )
+                )
 
         # if no data is provided we write the value in self._desired_value
         if data is None:
-            if field_name is None:
-                await write_desired_to_named_reg(reg_name)
-            else:
-                await write_desired_to_named_field(reg_name, field_name)
-
+            await write_desired_to_named_reg(reg_name)
         # otherwise we write the data provided by the user
         else:
-            if field_name is None:
-                await write_literal_to_named_reg(reg_name, data)
-                self.set(reg_name, data)
-            else:
-                await write_literal_to_named_field(reg_name, field_name, data)
-                self.set_field(reg_name, field_name, data)
+            await write_literal_to_named_reg(reg_name, data)
+            self.set(reg_name, data)
 
     async def read(self, reg_name: str, field_name: str | None = None) -> int:
         """Reads the value of a register or field from the DUT
@@ -250,7 +214,7 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         async def read_register(target: Register) -> int:
-            """Reads a register, including all fields"""
+            """Reads a register, including all fields, does not align"""
 
             result = 0
             for i, field in enumerate(target):
@@ -277,11 +241,8 @@ class RegModel:
             addr = target_field.absolute_address
             value = await self._callbacks.async_read_callback(addr)
 
-            # if the field width is < access width we need to refer it to zero
-            if target_field.width < target.accesswidth:
-                return value >> target_field.lsb
-
-            return value
+            # Refer the field to zero
+            return value >> (target_field.lsb % target.accesswidth)
 
         if field_name is None:
             return await read_register(target)
@@ -380,6 +341,7 @@ class RegModel:
         :type reg_name: str
         """
         target = self.get_register_by_name(reg_name)
+
         self.set(reg_name, np.random.randint(0, 1 << target.regwidth))
 
     def reset(self, reg_name: str) -> None:

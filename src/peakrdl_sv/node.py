@@ -26,11 +26,11 @@ class Node(UserList):
     def name(self):
         return self.inst_name
 
-    def path(self, hier_separator: str = "_"):
+    def path(self, hier_separator: str = "_", array_suffix: str = "_{index:d}"):
         return self.get_rel_path(
             self.owning_addrmap,
             hier_separator=hier_separator,
-            array_suffix="_{index:d}",
+            array_suffix=array_suffix,
         )
 
 
