@@ -9,8 +9,16 @@ from systemrdl.node import RegNode
 
 
 class Node(UserList):
-    def __init__(self, node: AddrmapNode | RegfileNode | RegNode | FieldNode) -> None:
+    def __init__(
+        self,
+        node: AddrmapNode | RegfileNode | RegNode | FieldNode,
+        parent: AddressMap | RegisterFile | Register | None,
+    ) -> None:
         self.node = node
+        if parent is None:
+            assert isinstance(node, AddressMap), "Root node must be of type AddressMap"
+        else:
+            self.parent = parent
         super().__init__()
 
     def __getattr__(self, item):
