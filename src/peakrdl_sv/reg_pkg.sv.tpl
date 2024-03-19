@@ -19,7 +19,7 @@ package ${lname}_reg_pkg;
 
 
   % for r in registers:
-  // ${r.path}
+  // ${r.path()}
   typedef struct packed {
   % if len(r) == 1:
     logic ${sv_bitarray(r[0])}q;
@@ -42,12 +42,12 @@ package ${lname}_reg_pkg;
     } ${f.name};
     % endfor
   % endif
-  } ${r.owning_addrmap.inst_name}_reg2hw_${r.path}_t;
+  } ${r.owning_addrmap.inst_name}_reg2hw_${r.path()}_t;
 
   % endfor\
 
   % for r in registers:
-  // ${r.path}
+  // ${r.path()}
   typedef struct packed {
     % if len(r) == 1:
     logic ${sv_bitarray(r[0])} d;
@@ -80,7 +80,7 @@ package ${lname}_reg_pkg;
   comment = f"// {msb}:{lsb}"
   lsb = msb + 1
 %>\
-    ${reg2hw_t_gen(r)} ${r.path}; ${comment}
+    ${reg2hw_t_gen(r)} ${r.path()}; ${comment}
     % endif
   % endfor
   } ${lname}_reg2hw_t;
@@ -101,7 +101,7 @@ package ${lname}_reg_pkg;
   comment = f"// {msb}:{lsb}"
   lsb = msb + 1
 %>\
-    ${hw2reg_t_gen(r)} ${r.path}; ${comment}
+    ${hw2reg_t_gen(r)} ${r.path()}; ${comment}
     % endif
   % endfor
   } ${lname}_hw2reg_t;
@@ -114,10 +114,10 @@ package ${lname}_reg_pkg;
       params = []
       for i in range(r.subregs):
         values.append(f"{addr_width}'h{r.absolute_address+(i*r.addressincr):X}")
-        params.append(f"{ublock}_{r.path.upper()}_{i}_OFFSET")
+        params.append(f"{ublock}_{r.path().upper()}_{i}_OFFSET")
     else:
       values = [f"{addr_width}'h{r.absolute_address:X}"]
-      params = [f"{ublock}_{r.path.upper()}_OFFSET"]
+      params = [f"{ublock}_{r.path().upper()}_OFFSET"]
 %>\
   % for p,v in zip(params, values):
   parameter logic [BlockAw-1:0] ${p} = ${v};
@@ -126,10 +126,10 @@ package ${lname}_reg_pkg;
 
 endpackage
 <%def name="hw2reg_t_gen(reg)" filter="trim">\
-${reg.owning_addrmap.inst_name}_hw2reg_${reg.path}_t
+${reg.owning_addrmap.inst_name}_hw2reg_${reg.path()}_t
 </%def>\
 <%def name="reg2hw_t_gen(reg)" filter="trim">\
-${reg.owning_addrmap.inst_name}_reg2hw_${reg.path}_t
+${reg.owning_addrmap.inst_name}_reg2hw_${reg.path()}_t
 </%def>\
 <%def name="sv_bitarray(field)" filter="trim">\
 % if field.width > 1:

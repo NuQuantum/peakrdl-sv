@@ -4,6 +4,6 @@ __pycache__
 build
 results.xml
 *.fst
-tests/*/rtl
-tests/*/sim_build
-tests/*/python
+tests/**/rtl
+tests/**/sim_build
+tests/**/python
