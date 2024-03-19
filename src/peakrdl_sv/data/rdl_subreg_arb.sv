@@ -5,8 +5,8 @@ module rdl_subreg_arb
   import rdl_subreg_pkg::*;
 #(
     parameter int DW = 32,
-    parameter on_read_e OnRead,
-    parameter on_write_e OnWrite
+    parameter on_read_e OnRead = OnReadNone,
+    parameter on_write_e OnWrite = OnWriteNone
 ) (
     // From CPU
     input logic          we,
