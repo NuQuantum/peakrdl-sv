@@ -19,7 +19,7 @@ class Node(UserList):
             assert isinstance(
                 node,
                 AddrmapNode,
-            ), f"Root node must be of type AddressMap {type(node)}"
+            ), f"Root node must be of type AddrmapNode {type(node)}"
         else:
             self.parent = parent
         super().__init__()
