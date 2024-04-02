@@ -171,11 +171,18 @@ class RegModel:
 
             target = self.get_register_by_name(reg_name)
 
-            for field in target:
-                value = self.get_field(reg_name, field.inst_name)
+            if target.is_wide:
+                for field in target:
+                    value = self.get_field(reg_name, field.inst_name)
+                    await self._callbacks.async_write_callback(
+                        field.absolute_address,
+                        self.align_to_field(field, value),
+                        **kwargs,
+                    )
+            else:
                 await self._callbacks.async_write_callback(
-                    field.absolute_address,
-                    self.align_to_field(field, value),
+                    target.absolute_address,
+                    self.get(reg_name),
                     **kwargs,
                 )
 
@@ -217,11 +224,17 @@ class RegModel:
             """Reads a register, including all fields, does not align"""
 
             result = 0
-            for i, field in enumerate(target):
-                addr = field.absolute_address
-                value = await self._callbacks.async_read_callback(addr)
-                result = result | (value << (target.accesswidth * i))
-            return result
+
+            if target.is_wide:
+                for i, field in enumerate(target):
+                    addr = field.absolute_address
+                    value = await self._callbacks.async_read_callback(addr)
+                    result = result | (value << (target.accesswidth * i))
+                return result
+            else:
+                return await self._callbacks.async_read_callback(
+                    target.absolute_address,
+                )
 
         async def read_field(target: Register, field_name: str) -> int:
             """Reads an individual field from a regster and references to 0"""
