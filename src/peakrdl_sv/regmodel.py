@@ -154,12 +154,21 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         # If no data provided, get from mirror get the register value
+<<<<<<< HEAD
         write_data = data or self.get(reg_name)
+=======
+        if data is None:
+            data = self.get(reg_name)
+>>>>>>> 8d396b1 ([dev]: Cleans up the implementation)
 
         # we need to write in `accesswidth` chunks
         for subreg in range(target.subregs):
             # shift and mask the value to write
+<<<<<<< HEAD
             shifted = write_data >> (target.accesswidth * subreg)
+=======
+            shifted = data >> (target.accesswidth * subreg)
+>>>>>>> 8d396b1 ([dev]: Cleans up the implementation)
             masked = shifted & ((1 << target.accesswidth) - 1)
 
             # write the word
@@ -187,7 +196,11 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         async def read_register(target: Register) -> int:
+<<<<<<< HEAD
             """Reads a registers in `accesswidth` sized chunks"""
+=======
+            """Reads a registers"""
+>>>>>>> 8d396b1 ([dev]: Cleans up the implementation)
 
             result = 0
             # if its wide we need to read in accesswidth chunks
@@ -198,10 +211,14 @@ class RegModel:
             return result
 
         async def read_field(target: Register, field_name: str) -> int:
+<<<<<<< HEAD
             """Reads an individual field from a regster and references it to 0
 
             Assumes field width is limited by access width
             """
+=======
+            """Reads an individual field from a regster and references it to 0"""
+>>>>>>> 8d396b1 ([dev]: Cleans up the implementation)
 
             def get_target_field(target: Register) -> Field | None:
                 for field in target:
@@ -226,7 +243,7 @@ class RegModel:
         if field_name is None:
             return await read_register(target)
         else:
-            return await read_field(target, field_name)  # TODO
+            return await read_field(target, field_name)
 
     # --------------------------------------------------------------------------------
     # UVM Register operations
