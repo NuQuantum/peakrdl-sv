@@ -172,14 +172,25 @@ class RegModel:
             target = self.get_register_by_name(reg_name)
 
             if target.is_wide:
-                for field in target:
-                    value = self.get_field(reg_name, field.inst_name)
+                # if its wide we need to write in accesswidth chunks
+                for subreg in range(target.subregs):
+                    # gather all the fields in the current subreg
+                    fields = target.get_subreg_fields(subreg)
+
+                    # form them into a word
+                    word = 0
+                    for field in fields:
+                        value = self.get_field(reg_name, field.name)
+                        word = word | self.align_to_field(field, value)
+
+                    # write the word
                     await self._callbacks.async_write_callback(
-                        field.absolute_address,
-                        self.align_to_field(field, value),
+                        fields[0].absolute_address,  # all have same abs addr
+                        word,
                         **kwargs,
                     )
             else:
+                # not wide so write entire register at once
                 await self._callbacks.async_write_callback(
                     target.absolute_address,
                     self.get(reg_name),
@@ -223,13 +234,13 @@ class RegModel:
         async def read_register(target: Register) -> int:
             """Reads a register, including all fields, does not align"""
 
-            result = 0
-
             if target.is_wide:
-                for i, field in enumerate(target):
-                    addr = field.absolute_address
+                result = 0
+                # if its wide we need to read in accesswidth chunks
+                for subreg in range(target.subregs):
+                    addr = target.absolute_address + subreg
                     value = await self._callbacks.async_read_callback(addr)
-                    result = result | (value << (target.accesswidth * i))
+                    result = result | (value << (target.accesswidth * subreg))
                 return result
             else:
                 return await self._callbacks.async_read_callback(
@@ -254,13 +265,15 @@ class RegModel:
             addr = target_field.absolute_address
             value = await self._callbacks.async_read_callback(addr)
 
-            # Refer the field to zero
-            return value >> (target_field.lsb % target.accesswidth)
+            # Refer the field to zero and mask out higher bits
+            shamt = target_field.lsb % target.accesswidth
+            mask = 2**target_field.width - 1
+            return (value >> shamt) & mask
 
         if field_name is None:
             return await read_register(target)
         else:
-            return await read_field(target, field_name)
+            return await read_field(target, field_name)  # TODO
 
     # --------------------------------------------------------------------------------
     # UVM Register operations
