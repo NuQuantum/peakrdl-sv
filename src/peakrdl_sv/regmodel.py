@@ -131,20 +131,6 @@ class RegModel:
             # perform the slice (python slicing non inclusive)
             yield (field.absolute_address, int(bits[lower:upper], 2))  # noqa: E203
 
-    def align_to_field(self, target: Field, value: int) -> int:
-        """Aligns a value to a field's LSB with consideration for the fields offset in
-        the register
-
-        :param target: The field the `value` should be aligned to
-        :type target: Field
-        :param value: The value to write
-        :type value: int
-        :return: The aligned value
-        :rtype: int
-        """
-        resolved_lsb = target.lsb % target.parent.accesswidth
-        return value << resolved_lsb
-
     # --------------------------------------------------------------------------------
     # Generic read and write wrappers
     # --------------------------------------------------------------------------------
@@ -166,56 +152,27 @@ class RegModel:
         :type data: int | None, optional
         """
 
-        async def write_desired_to_named_reg(reg_name: str):
-            """Writes a desired register value to the DUT"""
+        target = self.get_register_by_name(reg_name)
 
-            target = self.get_register_by_name(reg_name)
-
-            if target.is_wide:
-                # if its wide we need to write in accesswidth chunks
-                for subreg in range(target.subregs):
-                    # gather all the fields in the current subreg
-                    fields = target.get_subreg_fields(subreg)
-
-                    # form them into a word
-                    word = 0
-                    for field in fields:
-                        value = self.get_field(reg_name, field.name)
-                        word = word | self.align_to_field(field, value)
-
-                    # write the word
-                    await self._callbacks.async_write_callback(
-                        fields[0].absolute_address,  # all have same abs addr
-                        word,
-                        **kwargs,
-                    )
-            else:
-                # not wide so write entire register at once
-                await self._callbacks.async_write_callback(
-                    target.absolute_address,
-                    self.get(reg_name),
-                    **kwargs,
-                )
-
-        async def write_literal_to_named_reg(reg_name: str, value: int):
-            """Writes a literal value to a register specified by name, no alignment
-            required as we assume this is handled by the caller"""
-
-            target = self.get_register_by_name(reg_name)
-
-            for address, value in self.split_value_over_fields(target, value):
-                await self._callbacks.async_write_callback(
-                    address,
-                    value,
-                    **kwargs,
-                )
-
-        # if no data is provided we write the value in self._desired_value
+        # If no data provided, get from mirror get the register value
         if data is None:
-            await write_desired_to_named_reg(reg_name)
-        # otherwise we write the data provided by the user
-        else:
-            await write_literal_to_named_reg(reg_name, data)
+            data = self.get(reg_name)
+
+        # we need to write in `accesswidth` chunks
+        for subreg in range(target.subregs):
+            # shift and mask the value to write
+            shifted = data >> (target.accesswidth * subreg)
+            masked = shifted & ((1 << target.accesswidth) - 1)
+
+            # write the word
+            await self._callbacks.async_write_callback(
+                target.absolute_address + subreg,
+                masked,
+                **kwargs,
+            )
+
+        # set mirrored value if we provided a new value to write
+        if data is not None:
             self.set(reg_name, data)
 
     async def read(self, reg_name: str, field_name: str | None = None) -> int:
@@ -232,23 +189,18 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         async def read_register(target: Register) -> int:
-            """Reads a register, including all fields, does not align"""
+            """Reads a registers"""
 
-            if target.is_wide:
-                result = 0
-                # if its wide we need to read in accesswidth chunks
-                for subreg in range(target.subregs):
-                    addr = target.absolute_address + subreg
-                    value = await self._callbacks.async_read_callback(addr)
-                    result = result | (value << (target.accesswidth * subreg))
-                return result
-            else:
-                return await self._callbacks.async_read_callback(
-                    target.absolute_address,
-                )
+            result = 0
+            # if its wide we need to read in accesswidth chunks
+            for subreg in range(target.subregs):
+                addr = target.absolute_address + subreg
+                value = await self._callbacks.async_read_callback(addr)
+                result = result | (value << (target.accesswidth * subreg))
+            return result
 
         async def read_field(target: Register, field_name: str) -> int:
-            """Reads an individual field from a regster and references to 0"""
+            """Reads an individual field from a regster and references it to 0"""
 
             def get_target_field(target: Register) -> Field | None:
                 for field in target:
@@ -267,13 +219,13 @@ class RegModel:
 
             # Refer the field to zero and mask out higher bits
             shamt = target_field.lsb % target.accesswidth
-            mask = 2**target_field.width - 1
+            mask = (1 << target_field.width) - 1
             return (value >> shamt) & mask
 
         if field_name is None:
             return await read_register(target)
         else:
-            return await read_field(target, field_name)  # TODO
+            return await read_field(target, field_name)
 
     # --------------------------------------------------------------------------------
     # UVM Register operations
@@ -298,9 +250,9 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         # Extract the bits we are going to write and conver them to int
-        masked_values = []
-        for _, value in self.split_value_over_fields(target, value):
-            masked_values.append(value)
+        masked_values = [
+            value for _, value in self.split_value_over_fields(target, value)
+        ]
 
         # Write the values to the respective fields
         for idx, field in enumerate(target):
