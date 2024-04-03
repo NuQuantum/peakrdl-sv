@@ -226,7 +226,7 @@ class RegModel:
         if field_name is None:
             return await read_register(target)
         else:
-            return await read_field(target, field_name)
+            return await read_field(target, field_name)  # TODO
 
     # --------------------------------------------------------------------------------
     # UVM Register operations
