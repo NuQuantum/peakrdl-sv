@@ -103,6 +103,25 @@ class RegModel:
             self._log.info(f"Could not find register in {self._reg_map.keys()}")
             return None
 
+    def get_field_by_name(self, reg_name: str, field_name: str) -> FieldWrapper | None:
+        """Gets a field by its relative path
+
+        :param reg_name: The register name as a . separated string
+        :type reg_name: str
+        :param field_name: The field name within the register
+        :type field_name: str
+        :return: The target field and its desired value as a FieldWrapper object
+        :rtype: FieldWrapper | None
+        """
+        try:
+            return self._desired_values[reg_name][field_name]
+        except KeyError:
+            all_keys = (
+                self._desired_values.keys() + self._desired_values[reg_name].keys()
+            )
+            self._log.info(f"Could not find field in {all_keys}")
+            return None
+
     def split_value_over_fields(
         self,
         target: Register,
@@ -202,14 +221,8 @@ class RegModel:
         async def read_field(target: Register, field_name: str) -> int:
             """Reads an individual field from a regster and references it to 0"""
 
-            def get_target_field(target: Register) -> Field | None:
-                for field in target:
-                    if field.inst_name == field_name:
-                        return field
-                return None
-
             # find the field
-            target_field = get_target_field(target)
+            target_field = self.get_field_by_name(target.name, field_name).field
             if target_field is None:
                 raise ValueError(f"Could not find field in register ({target.name})")
 
@@ -321,6 +334,22 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         self.set(reg_name, np.random.randint(0, 1 << target.regwidth))
+
+    def randomize_field(self, reg_name: str, field_name: str):
+        """Randomizes the value of a field in a register
+
+        :param reg_name: The name of the parent register
+        :type reg_name: str
+        :param field_name: The name of the field to randomize
+        :type field_name: str
+        """
+        target_field = self.get_field_by_name(reg_name, field_name)
+
+        self.set_field(
+            reg_name,
+            field_name,
+            np.random.randint(0, 1 << target_field.field.width),
+        )
 
     def reset(self, reg_name: str) -> None:
         """Resets the desired value of a register
