@@ -239,21 +239,21 @@ ${field_wd_gen(f)}\
 
   always_comb begin
     reg_rdata = '0;
-    unique case (1'b1)
+    unique case (addr_hit)
   % for i, r in enumerate(registers):
 <%
     idx = reg_enables[r.path().lower()]['idx']
 %>\
     % if r.is_wide:
       % for i in range(r.subregs):
-      addr_hit[${idx+i}]: begin
+        1 << ${idx+i}: begin
         % for f in r.get_subreg_fields(i):
 ${rdata_gen(f)}\
         % endfor
       end
       % endfor
     % else:
-      addr_hit[${idx}]: begin
+      1 << ${idx}: begin
       % for f in r:
 ${rdata_gen(f)}\
       % endfor
