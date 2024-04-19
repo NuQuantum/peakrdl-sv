@@ -4,3 +4,4 @@ pre-commit
 numpy
 cocotb
 cocotb-bus
+pytests

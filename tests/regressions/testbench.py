@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-# TODO: Updgrade to a Transaction Class
+# TODO: Updgrade to a Transaction Class - currently not supported by the RegModel
 class CsrTransaction:
     def __init__(self, addr: int, wdata=None):
         self.addr = addr
@@ -41,29 +41,49 @@ class CsrDriver(BusDriver):
         BusDriver.__init__(self, dut, name, clock, **kwargs)
 
     # BusDriver classes have a singular _driver_send async method
-    async def _driver_send(self, addr: int, wdata: int | None = None):
+    async def _driver_send(self, addr: int, wdata: int | None = None) -> int:
         """Writes a value to a register
 
-        :param transaction: _description_
-        :type transaction: CsrTransaction
-        :param sync: _description_
-        :type sync: _type_
+        :param addr: Absolute register address to read/write to
+        :type addr: int
+        :param wdata: Optional write data, if None treats as read, defaults to None
+        :type wdata: int | None, optional
+        :return: The read data, can be discarded if a write as performed
+        :rtype: int
         """
         await RisingEdge(self.clock)
         self.bus.re.value = 1 if wdata is None else 0
         self.bus.we.value = 0 if wdata is None else 1
         self.bus.addr.value = addr
         self.bus.wdata.value = wdata or 0
+
         await RisingEdge(self.clock)
         self.bus.re.value = 0
         self.bus.we.value = 0
 
+        return self.bus.rdata.value.integer
+
 
 class Testbench:
-    def __init__(self, dut, rdl_file: str, log):
+    def __init__(self, dut, rdl_file: str, debug: bool = False):
         self.dut = dut
-        self.bus = CsrDriver(dut, dut.clk)
-        self.clkedge = RisingEdge(dut.clk)
+
+        # Initialise the bus to something useful - for now assume that the bus is a CSR
+        # bus
+        dut.clk.setimmediatevalue(0)
+        dut.rst.setimmediatevalue(0)
+        dut.csr_we.setimmediatevalue(0)
+        dut.csr_re.setimmediatevalue(0)
+        dut.csr_addr.setimmediatevalue(0)
+        dut.csr_wdata.setimmediatevalue(0)
+        dut.hw2reg.setimmediatevalue(0)
+
+        self.bus = CsrDriver(self.dut, self.dut.clk)
+        self.clkedge = RisingEdge(self.dut.clk)
+        self._log = dut._log
+
+        if debug:
+            self._log.setLevel(logging.DEBUG)
 
         # local copies of parameter values
         self.addr_width = self.dut.AW
@@ -75,27 +95,22 @@ class Testbench:
             async_write_callback=self.bus._driver_send,
             async_read_callback=self.bus._driver_send,
         )
-        self.RAL = RegModel(rdl_file, callbacks, log)
-
-        # Initialise the bus to something useful - for now assume that the bus is a CSR
-        # bus
-        dut.rst.setimmediatevalue(0)
-        dut.csr_we.setimmediatevalue(0)
-        dut.csr_re.setimmediatevalue(0)
-        dut.csr_addr.setimmediatevalue(0)
-        dut.csr_wdata.setimmediatevalue(0)
-        dut.hw2reg.setimmediatevalue(0)
+        self.RAL = RegModel(rdl_file, callbacks, self._log, debug)
 
         cocotb.start_soon(Clock(dut.clk, 5, "ns").start())
 
     async def reset(self) -> None:
-        """Resets the DUT to a know state, aware of the ResetType"""
-        self.log.info("Resetting DUT")
+        """Resets the DUT to a know state, aware of the active low/high reset"""
+
+        self._log.debug("Resetting DUT")
 
         # if reset type is even (0 or 2) then active high
-        active_value = 1 if self.dut.ResetType.value % 2 == 0 else 0
+        active, inactive = (1, 0) if self.dut.ResetType.value % 2 == 0 else (0, 1)
 
-        self.dut.rst.value = active_value
+        self._log.debug(f"Reset values: Active = {active}, Inactive = {inactive}")
+
+        await self.clkedge
+        self.dut.rst.value = 1
         for _ in range(10):
             await self.clkedge
-        self.dut.rst.value = ~active_value
+        self.dut.rst.value = 0

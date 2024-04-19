@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 from typing import Generator
@@ -33,12 +34,15 @@ class RegModel:
     :type log: Any
     """
 
-    def __init__(self, rdlfile: str, callbacks: CallbackSet, log):
+    def __init__(self, rdlfile: str, callbacks: CallbackSet, log, debug: bool = False):
         self._callbacks = callbacks
         self._top_node: AddressMap = self._parse_rdl(rdlfile)
         self._reg_map = self._map_registers()
         self._desired_values = self._map_fields()
         self._log = log
+
+        if debug:
+            self._log.setLevel(logging.DEBUG)
 
     # --------------------------------------------------------------------------------
     # Initialisation
@@ -119,7 +123,7 @@ class RegModel:
             all_keys = (
                 self._desired_values.keys() + self._desired_values[reg_name].keys()
             )
-            self._log.info(f"Could not find field in {all_keys}")
+            self._log.warning(f"Could not find field in {all_keys}")
             return None
 
     def split_value_over_fields(
@@ -171,19 +175,27 @@ class RegModel:
         :type data: int | None, optional
         """
 
+        self._log.debug(f"Performing write to target register {reg_name}")
+
         target = self.get_register_by_name(reg_name)
 
+        self._log.debug(f"Target ({reg_name}) has {target.subregs} subregs")
+
         # If no data provided, get from mirror get the register value
-        if data is None:
-            data = self.get(reg_name)
+        write_data = data or self.get(reg_name)
 
         # we need to write in `accesswidth` chunks
         for subreg in range(target.subregs):
             # shift and mask the value to write
-            shifted = data >> (target.accesswidth * subreg)
+            shifted = write_data >> (target.accesswidth * subreg)
             masked = shifted & ((1 << target.accesswidth) - 1)
 
             # write the word
+            self._log.debug(
+                f"Writing data {hex(masked)} to addr"
+                f" {target.absolute_address + subreg} ",
+            )
+
             await self._callbacks.async_write_callback(
                 target.absolute_address + subreg,
                 masked,
@@ -205,7 +217,13 @@ class RegModel:
         :rtype: int
         """
 
+        self._log.debug(f"Performing read from target register {reg_name}.{field_name}")
+
         target = self.get_register_by_name(reg_name)
+
+        self._log.debug(
+            f"Target ({reg_name}.{field_name}) has {target.subregs} subregs",
+        )
 
         async def read_register(target: Register) -> int:
             """Reads a registers"""
@@ -215,6 +233,7 @@ class RegModel:
             for subreg in range(target.subregs):
                 addr = target.absolute_address + subreg
                 value = await self._callbacks.async_read_callback(addr)
+                self._log.debug(f"Read value: {hex(value)}")
                 result = result | (value << (target.accesswidth * subreg))
             return result
 
@@ -260,6 +279,8 @@ class RegModel:
         :param value: The value to write to the register
         :type value: int
         """
+        self._log.debug(f"Setting reg ({reg_name}) with value {value}")
+
         target = self.get_register_by_name(reg_name)
 
         # Extract the bits we are going to write and conver them to int
@@ -281,6 +302,8 @@ class RegModel:
         :param value: the value to write to the field
         :type value: int
         """
+        self._log.debug(f"Setting field ({reg_name}.{field_name}) with value {value}")
+
         try:
             self._desired_values[reg_name][field_name].value = value
         except KeyError as e:
@@ -297,6 +320,8 @@ class RegModel:
         :return: the register's value
         :rtype: int
         """
+        self._log.debug(f"Getting reg ({reg_name}) value")
+
         target = self.get_register_by_name(reg_name)
 
         value = 0
@@ -317,6 +342,8 @@ class RegModel:
         :return: The field's value
         :rtype: int
         """
+        self._log.debug(f"Getting field ({reg_name}.{field_name}) value")
+
         try:
             return self._desired_values[reg_name][field_name].value
         except KeyError as e:

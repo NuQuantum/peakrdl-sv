@@ -6,18 +6,18 @@ addrmap test {
 
   reg standard_register {
     field {} f1[7:0];
-  }
+  };
 
   reg standard_register_with_fields {
     field {} f1[3:0];
     field {} f2[7:4];
-  }
+  };
 
   reg narrow_register {
     field {} f1[0:0];
     field {} f2[2:1];
     field {} f3[6:3];
-  }
+  };
 
   reg wide_register {
     regwidth = 16;
