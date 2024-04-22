@@ -99,9 +99,8 @@ class RegModel:
         """
         try:
             return self._reg_map[reg_name]
-        except KeyError:
-            self._log.info(f"Could not find register in {self._reg_map.keys()}")
-            return None
+        except KeyError as e:
+            raise KeyError(f"Could not find register in {self._reg_map.keys()}") from e
 
     def split_value_over_fields(
         self,
@@ -155,13 +154,12 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         # If no data provided, get from mirror get the register value
-        if data is None:
-            data = self.get(reg_name)
+        write_data = data or self.get(reg_name)
 
         # we need to write in `accesswidth` chunks
         for subreg in range(target.subregs):
             # shift and mask the value to write
-            shifted = data >> (target.accesswidth * subreg)
+            shifted = write_data >> (target.accesswidth * subreg)
             masked = shifted & ((1 << target.accesswidth) - 1)
 
             # write the word
@@ -189,7 +187,7 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         async def read_register(target: Register) -> int:
-            """Reads a registers"""
+            """Reads a registers in `accesswidth` sized chunks"""
 
             result = 0
             # if its wide we need to read in accesswidth chunks
@@ -200,7 +198,10 @@ class RegModel:
             return result
 
         async def read_field(target: Register, field_name: str) -> int:
-            """Reads an individual field from a regster and references it to 0"""
+            """Reads an individual field from a regster and references it to 0
+
+            Assumes field width is limited by access width
+            """
 
             def get_target_field(target: Register) -> Field | None:
                 for field in target:
@@ -307,7 +308,7 @@ class RegModel:
         try:
             return self._desired_values[reg_name][field_name].value
         except KeyError as e:
-            raise Exception(
+            raise KeyError(
                 f"The specified field ({reg_name}.{field_name}) does not exist!"
                 f" ({self._desired_values.keys()})",
             ) from e
