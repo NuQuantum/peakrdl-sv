@@ -99,9 +99,8 @@ class RegModel:
         """
         try:
             return self._reg_map[reg_name]
-        except KeyError:
-            self._log.info(f"Could not find register in {self._reg_map.keys()}")
-            return None
+        except KeyError as e:
+            raise KeyError(f"Could not find register in {self._reg_map.keys()}") from e
 
     def split_value_over_fields(
         self,
@@ -131,20 +130,6 @@ class RegModel:
             # perform the slice (python slicing non inclusive)
             yield (field.absolute_address, int(bits[lower:upper], 2))  # noqa: E203
 
-    def align_to_field(self, target: Field, value: int) -> int:
-        """Aligns a value to a field's LSB with consideration for the fields offset in
-        the register
-
-        :param target: The field the `value` should be aligned to
-        :type target: Field
-        :param value: The value to write
-        :type value: int
-        :return: The aligned value
-        :rtype: int
-        """
-        resolved_lsb = target.lsb % target.parent.accesswidth
-        return value << resolved_lsb
-
     # --------------------------------------------------------------------------------
     # Generic read and write wrappers
     # --------------------------------------------------------------------------------
@@ -166,38 +151,26 @@ class RegModel:
         :type data: int | None, optional
         """
 
-        async def write_desired_to_named_reg(reg_name: str):
-            """Writes a desired register value to the DUT"""
+        target = self.get_register_by_name(reg_name)
 
-            target = self.get_register_by_name(reg_name)
+        # If no data provided, get from mirror get the register value
+        write_data = data or self.get(reg_name)
 
-            for field in target:
-                value = self.get_field(reg_name, field.inst_name)
-                await self._callbacks.async_write_callback(
-                    field.absolute_address,
-                    self.align_to_field(field, value),
-                    **kwargs,
-                )
+        # we need to write in `accesswidth` chunks
+        for subreg in range(target.subregs):
+            # shift and mask the value to write
+            shifted = write_data >> (target.accesswidth * subreg)
+            masked = shifted & ((1 << target.accesswidth) - 1)
 
-        async def write_literal_to_named_reg(reg_name: str, value: int):
-            """Writes a literal value to a register specified by name, no alignment
-            required as we assume this is handled by the caller"""
+            # write the word
+            await self._callbacks.async_write_callback(
+                target.absolute_address + subreg,
+                masked,
+                **kwargs,
+            )
 
-            target = self.get_register_by_name(reg_name)
-
-            for address, value in self.split_value_over_fields(target, value):
-                await self._callbacks.async_write_callback(
-                    address,
-                    value,
-                    **kwargs,
-                )
-
-        # if no data is provided we write the value in self._desired_value
-        if data is None:
-            await write_desired_to_named_reg(reg_name)
-        # otherwise we write the data provided by the user
-        else:
-            await write_literal_to_named_reg(reg_name, data)
+        # set mirrored value if we provided a new value to write
+        if data is not None:
             self.set(reg_name, data)
 
     async def read(self, reg_name: str, field_name: str | None = None) -> int:
@@ -214,17 +187,21 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         async def read_register(target: Register) -> int:
-            """Reads a register, including all fields, does not align"""
+            """Reads a registers in `accesswidth` sized chunks"""
 
             result = 0
-            for i, field in enumerate(target):
-                addr = field.absolute_address
+            # if its wide we need to read in accesswidth chunks
+            for subreg in range(target.subregs):
+                addr = target.absolute_address + subreg
                 value = await self._callbacks.async_read_callback(addr)
-                result = result | (value << (target.accesswidth * i))
+                result = result | (value << (target.accesswidth * subreg))
             return result
 
         async def read_field(target: Register, field_name: str) -> int:
-            """Reads an individual field from a regster and references to 0"""
+            """Reads an individual field from a regster and references it to 0
+
+            Assumes field width is limited by access width
+            """
 
             def get_target_field(target: Register) -> Field | None:
                 for field in target:
@@ -241,8 +218,10 @@ class RegModel:
             addr = target_field.absolute_address
             value = await self._callbacks.async_read_callback(addr)
 
-            # Refer the field to zero
-            return value >> (target_field.lsb % target.accesswidth)
+            # Refer the field to zero and mask out higher bits
+            shamt = target_field.lsb % target.accesswidth
+            mask = (1 << target_field.width) - 1
+            return (value >> shamt) & mask
 
         if field_name is None:
             return await read_register(target)
@@ -272,9 +251,9 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         # Extract the bits we are going to write and conver them to int
-        masked_values = []
-        for _, value in self.split_value_over_fields(target, value):
-            masked_values.append(value)
+        masked_values = [
+            value for _, value in self.split_value_over_fields(target, value)
+        ]
 
         # Write the values to the respective fields
         for idx, field in enumerate(target):
@@ -329,7 +308,7 @@ class RegModel:
         try:
             return self._desired_values[reg_name][field_name].value
         except KeyError as e:
-            raise Exception(
+            raise KeyError(
                 f"The specified field ({reg_name}.{field_name}) does not exist!"
                 f" ({self._desired_values.keys()})",
             ) from e
