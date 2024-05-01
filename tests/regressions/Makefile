@@ -14,6 +14,9 @@ MODULE = test
 
 CUSTOM_COMPILE_DEPS = rtl
 
+ADDR_MAP = addrmap.rdl
+export ADDR_MAP
+
 ifeq (SIM, verilator)
 ifeq (WAVES, 1)
 EXTRA_ARGS += --trace-fst --trace-structs

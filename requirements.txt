@@ -3,3 +3,5 @@ mako
 pre-commit
 numpy
 cocotb
+cocotb-bus
+pytest

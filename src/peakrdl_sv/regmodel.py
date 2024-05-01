@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 from typing import Generator
@@ -33,12 +34,15 @@ class RegModel:
     :type log: Any
     """
 
-    def __init__(self, rdlfile: str, callbacks: CallbackSet, log):
+    def __init__(self, rdlfile: str, callbacks: CallbackSet, log, debug: bool = False):
         self._callbacks = callbacks
         self._top_node: AddressMap = self._parse_rdl(rdlfile)
         self._reg_map = self._map_registers()
         self._desired_values = self._map_fields()
         self._log = log
+
+        if debug:
+            self._log.setLevel(logging.DEBUG)
 
     # --------------------------------------------------------------------------------
     # Initialisation
@@ -102,6 +106,24 @@ class RegModel:
         except KeyError as e:
             raise KeyError(f"Could not find register in {self._reg_map.keys()}") from e
 
+    def get_field_by_name(self, reg_name: str, field_name: str) -> FieldWrapper | None:
+        """Gets a field by its relative path
+
+        :param reg_name: The register name as a . separated string
+        :type reg_name: str
+        :param field_name: The field name within the register
+        :type field_name: str
+        :return: The target field and its desired value as a FieldWrapper object
+        :rtype: FieldWrapper | None
+        """
+        try:
+            return self._desired_values[reg_name][field_name]
+        except KeyError as e:
+            all_keys = (
+                self._desired_values.keys() + self._desired_values[reg_name].keys()
+            )
+            raise KeyError(f"Could not find field in {all_keys}") from e
+
     def split_value_over_fields(
         self,
         target: Register,
@@ -151,7 +173,11 @@ class RegModel:
         :type data: int | None, optional
         """
 
+        self._log.debug(f"Performing write to target register {reg_name}")
+
         target = self.get_register_by_name(reg_name)
+
+        self._log.debug(f"Target ({reg_name}) has {target.subregs} subregs")
 
         # If no data provided, get from mirror get the register value
         write_data = data or self.get(reg_name)
@@ -163,6 +189,11 @@ class RegModel:
             masked = shifted & ((1 << target.accesswidth) - 1)
 
             # write the word
+            self._log.debug(
+                f"Writing data {hex(masked)} to addr"
+                f" {target.absolute_address + subreg} ",
+            )
+
             await self._callbacks.async_write_callback(
                 target.absolute_address + subreg,
                 masked,
@@ -184,7 +215,13 @@ class RegModel:
         :rtype: int
         """
 
+        self._log.debug(f"Performing read from target register {reg_name}.{field_name}")
+
         target = self.get_register_by_name(reg_name)
+
+        self._log.debug(
+            f"Target ({reg_name}.{field_name}) has {target.subregs} subregs",
+        )
 
         async def read_register(target: Register) -> int:
             """Reads a registers in `accesswidth` sized chunks"""
@@ -194,6 +231,7 @@ class RegModel:
             for subreg in range(target.subregs):
                 addr = target.absolute_address + subreg
                 value = await self._callbacks.async_read_callback(addr)
+                self._log.debug(f"Read value: {hex(value)}")
                 result = result | (value << (target.accesswidth * subreg))
             return result
 
@@ -203,14 +241,8 @@ class RegModel:
             Assumes field width is limited by access width
             """
 
-            def get_target_field(target: Register) -> Field | None:
-                for field in target:
-                    if field.inst_name == field_name:
-                        return field
-                return None
-
             # find the field
-            target_field = get_target_field(target)
+            target_field = self.get_field_by_name(target.name, field_name).field
             if target_field is None:
                 raise ValueError(f"Could not find field in register ({target.name})")
 
@@ -248,6 +280,8 @@ class RegModel:
         :param value: The value to write to the register
         :type value: int
         """
+        self._log.debug(f"Setting reg ({reg_name}) with value {value}")
+
         target = self.get_register_by_name(reg_name)
 
         # Extract the bits we are going to write and conver them to int
@@ -269,6 +303,8 @@ class RegModel:
         :param value: the value to write to the field
         :type value: int
         """
+        self._log.debug(f"Setting field ({reg_name}.{field_name}) with value {value}")
+
         try:
             self._desired_values[reg_name][field_name].value = value
         except KeyError as e:
@@ -285,6 +321,8 @@ class RegModel:
         :return: the register's value
         :rtype: int
         """
+        self._log.debug(f"Getting reg ({reg_name}) value")
+
         target = self.get_register_by_name(reg_name)
 
         value = 0
@@ -305,6 +343,8 @@ class RegModel:
         :return: The field's value
         :rtype: int
         """
+        self._log.debug(f"Getting field ({reg_name}.{field_name}) value")
+
         try:
             return self._desired_values[reg_name][field_name].value
         except KeyError as e:
@@ -322,6 +362,22 @@ class RegModel:
         target = self.get_register_by_name(reg_name)
 
         self.set(reg_name, np.random.randint(0, 1 << target.regwidth))
+
+    def randomize_field(self, reg_name: str, field_name: str):
+        """Randomizes the value of a field in a register
+
+        :param reg_name: The name of the parent register
+        :type reg_name: str
+        :param field_name: The name of the field to randomize
+        :type field_name: str
+        """
+        target_field = self.get_field_by_name(reg_name, field_name)
+
+        self.set_field(
+            reg_name,
+            field_name,
+            np.random.randint(0, 1 << target_field.field.width),
+        )
 
     def reset(self, reg_name: str) -> None:
         """Resets the desired value of a register
