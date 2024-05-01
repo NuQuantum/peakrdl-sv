@@ -10,10 +10,18 @@ from testbench import Testbench
 logger = logging.getLogger(__name__)
 
 # set in the makefile
-addr_map = os.environ["ADDR_MAP"]
+try:
+    addr_map = os.environ["ADDR_MAP"]
+except KeyError as e:
+    raise Exception(
+        "You must specify an address map (.rdl) in the coco.tb makefile",
+    ) from e
 
 # set in cmd line
-debug = os.environ["DEBUG"] == "1" or False
+try:
+    debug = os.environ["DEBUG"] == "1"
+except KeyError:
+    debug = False
 
 
 async def assert_register_match(tb: Testbench, register: str) -> None:
@@ -77,9 +85,6 @@ async def test_register_read_write(dut, target):
     await assert_register_match(tb, target)
 
 
-# Is it better to let the RegModel expose the register names and then iterate over the
-# register names in a more systematic way inside the test (which is adaptive to the
-# register map definition)?
 factory = TestFactory(test_register_read_write)
 factory.add_option(
     "target",

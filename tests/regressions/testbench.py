@@ -110,7 +110,7 @@ class Testbench:
         self._log.debug(f"Reset values: Active = {active}, Inactive = {inactive}")
 
         await self.clkedge
-        self.dut.rst.value = 1
+        self.dut.rst.value = active
         for _ in range(10):
             await self.clkedge
-        self.dut.rst.value = 0
+        self.dut.rst.value = inactive
