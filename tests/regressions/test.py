@@ -78,7 +78,7 @@ async def test_register_read_write(dut, target):
 
 
 # Is it better to let the RegModel expose the register names and then iterate over the
-# register names in a more programatic way inside the test (which is adaptive to the
+# register names in a more systematic way inside the test (which is adaptive to the
 # register map definition)?
 factory = TestFactory(test_register_read_write)
 factory.add_option(

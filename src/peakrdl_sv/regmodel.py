@@ -118,12 +118,11 @@ class RegModel:
         """
         try:
             return self._desired_values[reg_name][field_name]
-        except KeyError:
+        except KeyError as e:
             all_keys = (
                 self._desired_values.keys() + self._desired_values[reg_name].keys()
             )
-            self._log.warning(f"Could not find field in {all_keys}")
-            return None
+            raise KeyError(f"Could not find field in {all_keys}") from e
 
     def split_value_over_fields(
         self,
