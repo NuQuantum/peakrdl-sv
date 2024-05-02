@@ -37,7 +37,7 @@ class CsrTransaction:
 class CsrDriver(BusDriver):
     _signals = ["re", "we", "addr", "rdata", "wdata"]
 
-    def __init__(self, dut, clock, name="csr", **kwargs):
+    def __init__(self, dut, clock, name="reg", **kwargs):
         BusDriver.__init__(self, dut, name, clock, **kwargs)
 
     # BusDriver classes have a singular _driver_send async method
@@ -72,10 +72,10 @@ class Testbench:
         # bus
         dut.clk.setimmediatevalue(0)
         dut.rst.setimmediatevalue(0)
-        dut.csr_we.setimmediatevalue(0)
-        dut.csr_re.setimmediatevalue(0)
-        dut.csr_addr.setimmediatevalue(0)
-        dut.csr_wdata.setimmediatevalue(0)
+        dut.reg_we.setimmediatevalue(0)
+        dut.reg_re.setimmediatevalue(0)
+        dut.reg_addr.setimmediatevalue(0)
+        dut.reg_wdata.setimmediatevalue(0)
         dut.hw2reg.setimmediatevalue(0)
 
         self.bus = CsrDriver(self.dut, self.dut.clk)

@@ -36,8 +36,8 @@ class VerilogExporter:
         if not outpath.exists():
             outpath.mkdir(parents=True, exist_ok=True)
 
-        reg_pkg_path = outpath / f"{node.inst_name}_reg_pkg.sv"
-        reg_top_path = outpath / f"{node.inst_name}_reg_top.sv"
+        reg_pkg_path = outpath / f"{node.inst_name.lower()}_reg_pkg.sv"
+        reg_top_path = outpath / f"{node.inst_name.lower()}_reg_top.sv"
 
         reg_top_tpl = Template(
             filename=resource_filename("peakrdl_sv", "reg_top.sv.tpl"),

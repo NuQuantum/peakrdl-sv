@@ -49,55 +49,27 @@
 
 module ${lblock}_reg_top
   import rdl_subreg_pkg::*;
+  import ${lblock}_reg_pkg::*;
 #(
-  parameter reset_type_e ResetType = ActiveHighSync
+  parameter reset_type_e ResetType = ActiveHighSync,
+  localparam int AW                = ${addr_width},
+  localparam int DW                = ${data_width}
 ) (
   input logic clk,
   input logic rst,
 
-  // Bus I/F
-  // REVISIT: hacked to the Migen CSR bus for now.
-  input logic csr_we,
-  input logic csr_re,
-  input logic [31:0] csr_addr,
-  input logic [7:0] csr_wdata,
-  output logic [7:0] csr_rdata,
+  // CPU I/F
+  input logic           reg_we,
+  input logic           reg_re,
+  input logic [AW-1:0]  reg_addr,
+  input logic [DW-1:0]  reg_wdata,
+  output logic [DW-1:0] reg_rdata,
 
   // HW I/F
   output ${lblock}_reg_pkg::${lblock}_reg2hw_t reg2hw, // Write
   input  ${lblock}_reg_pkg::${lblock}_hw2reg_t hw2reg  // Read
 
 );
-
-  import ${lblock}_reg_pkg::*;
-
-  localparam int AW  = ${addr_width};
-  localparam int DW  = ${data_width};
-  localparam int DBW = DW/8;
-
-  // --------------------------------------------------------------------------------
-  // Logic Declarations
-  // --------------------------------------------------------------------------------
-
-  logic           reg_we;
-  logic           reg_re;
-  logic [AW-1:0]  reg_addr;
-  logic [DW-1:0]  reg_wdata;
-  logic [DBW-1:0] reg_wstrb;
-  logic [DW-1:0]  reg_rdata;
-
-
-  // --------------------------------------------------------------------------------
-  // REVISIT: temporary hack
-  // --------------------------------------------------------------------------------
-
-  assign reg_we    = csr_we;
-  assign reg_re    = csr_re;
-  assign reg_addr  = csr_addr[AW-1:0];
-  assign reg_wdata = csr_wdata;
-  assign reg_wstrb = '1;
-  assign csr_rdata = reg_rdata;
-
 
   // --------------------------------------------------------------------------------
   // Software Logic Declarations
@@ -127,9 +99,9 @@ module ${lblock}_reg_top
   % for f in r:
 <%
   if len(r) == 1:
-    struct_path = f"{r.path()}"
+    struct_path = f"{r.path().lower()}"
   else:
-    struct_path = f"{r.path()}.{f.inst_name}"
+    struct_path = f"{r.path().lower()}.{f.inst_name.lower()}"
 
   subreg_idx = f.msb // r.accesswidth
 
@@ -279,14 +251,6 @@ endmodule
   % for i,enable in enumerate(read_enables):
   assign ${enable} = addr_hit[${idx+i}] && reg_re;
   % endfor
-## REVISIT: this is the old code pre wide-reg support.  Remove once above works.
-## <%def name="reg_enable_gen(reg, idx)">\
-##   % if reg.has_sw_writable:
-##   assign ${reg.path().lower()}_we = addr_hit[${idx}] && reg_we;
-##   % endif
-##   % if reg.has_sw_readable:
-##   assign ${reg.path().lower()}_re = addr_hit[${idx}] && reg_re;
-##   % endif
 </%def>\
 <%def name="field_wd_gen(field)">\
   % if field.is_sw_writable:

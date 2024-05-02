@@ -39,10 +39,10 @@ package ${lname}_reg_pkg;
       % if f.needs_qre:
       logic re;
       % endif
-    } ${f.name};
+    } ${f.name.lower()};
     % endfor
   % endif
-  } ${r.owning_addrmap.inst_name}_reg2hw_${r.path()}_t;
+  } ${r.owning_addrmap.inst_name.lower()}_reg2hw_${r.path().lower()}_t;
 
   % endfor\
 
@@ -57,7 +57,7 @@ package ${lname}_reg_pkg;
     struct packed {
       logic ${sv_bitarray(f)} d;
       logic de;
-    } ${f.name};
+    } ${f.name.lower()};
     % endfor
     % endif
   } ${hw2reg_t_gen(r)};
@@ -80,7 +80,7 @@ package ${lname}_reg_pkg;
   comment = f"// {msb}:{lsb}"
   lsb = msb + 1
 %>\
-    ${reg2hw_t_gen(r)} ${r.path()}; ${comment}
+    ${reg2hw_t_gen(r)} ${r.path().lower()}; ${comment}
     % endif
   % endfor
   } ${lname}_reg2hw_t;
@@ -101,7 +101,7 @@ package ${lname}_reg_pkg;
   comment = f"// {msb}:{lsb}"
   lsb = msb + 1
 %>\
-    ${hw2reg_t_gen(r)} ${r.path()}; ${comment}
+    ${hw2reg_t_gen(r)} ${r.path().lower()}; ${comment}
     % endif
   % endfor
   } ${lname}_hw2reg_t;
@@ -126,10 +126,10 @@ package ${lname}_reg_pkg;
 
 endpackage
 <%def name="hw2reg_t_gen(reg)" filter="trim">\
-${reg.owning_addrmap.inst_name}_hw2reg_${reg.path()}_t
+${reg.owning_addrmap.inst_name.lower()}_hw2reg_${reg.path().lower()}_t
 </%def>\
 <%def name="reg2hw_t_gen(reg)" filter="trim">\
-${reg.owning_addrmap.inst_name}_reg2hw_${reg.path()}_t
+${reg.owning_addrmap.inst_name.lower()}_reg2hw_${reg.path().lower()}_t
 </%def>\
 <%def name="sv_bitarray(field)" filter="trim">\
 % if field.width > 1:
