@@ -59,11 +59,11 @@ module ${lblock}_reg_top
   input logic rst,
 
   // CPU I/F
-  input logic          reg_we,
-  input logic          reg_re,
-  input logic [AW-1:0] reg_addr,
-  input logic [DW-1:0] reg_wdata,
-  input logic [DW-1:0] reg_rdata,
+  input logic           reg_we,
+  input logic           reg_re,
+  input logic [AW-1:0]  reg_addr,
+  input logic [DW-1:0]  reg_wdata,
+  output logic [DW-1:0] reg_rdata,
 
   // HW I/F
   output ${lblock}_reg_pkg::${lblock}_reg2hw_t reg2hw, // Write
