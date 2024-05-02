@@ -6,10 +6,9 @@ if [[ ! -e $VENV ]]; then
     source $VENV/bin/activate
     pip install -U pip wheel
     pip install -r requirements.txt
+    pip install -e .
 else
     source $VENV/bin/activate
 fi
-
-export PYTHONPATH=$PYTHONPATH:$DIR/src/
 
 pre-commit install
