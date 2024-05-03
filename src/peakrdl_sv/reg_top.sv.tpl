@@ -76,7 +76,7 @@ module ${lblock}_reg_top
   // --------------------------------------------------------------------------------
 
   % for r in registers:
-  % if r.has_hw_readable:
+  % if r.has_sw_readable:
   % for enable in reg_enables[r.path().lower()]['re']:
   logic ${enable};
   % endfor
@@ -127,8 +127,19 @@ module ${lblock}_reg_top
   % if f.is_sw_readable:
   logic ${sv_bitarray(f)} ${qs_expr};
   % endif
-  % if r.external:
-  // Register[${r.name}] Field[${f.name}] Bits[${f.get_bit_slice()}]
+  % if not f.implements_storage:
+    % if f.is_hw_writable:
+      % if f.needs_qre:
+  assign ${qre_expr} = ${re_expr};
+      % endif
+  assign ${qs_expr} = ${d_expr};
+    %else:
+      % if f.is_hw_readable:
+  assign ${q_expr} = ${reset_gen(f)};
+      % endif
+  assign ${qs_expr} = ${reset_gen(f)};
+    %endif
+  % elif r.external:
   rdl_subreg_ext #(
     .DW (${f.width})
   ) u_${f.path().lower()} (
@@ -196,6 +207,9 @@ module ${lblock}_reg_top
     % if r.has_sw_writable:
 ${register_we_gen(r,i)}\
     % endif
+    % if r.has_sw_readable:
+${register_re_gen(r,i)}\
+    %endif
   % if len(r) == 1:
 ${field_wd_gen(r[0])}\
   % else:
@@ -242,12 +256,17 @@ endmodule
 <%def name="register_we_gen(reg, idx)">\
 <%
   write_enables = reg_enables[reg.path().lower()]['we']
-  read_enables  = reg_enables[reg.path().lower()]['re']
   idx           = reg_enables[reg.path().lower()]['idx']
 %>\
   % for i,enable in enumerate(write_enables):
   assign ${enable} = addr_hit[${idx+i}] && reg_we;
   % endfor
+</%def>\
+<%def name="register_re_gen(reg, idx)">\
+<%
+  read_enables  = reg_enables[reg.path().lower()]['re']
+  idx           = reg_enables[reg.path().lower()]['idx']
+%>\
   % for i,enable in enumerate(read_enables):
   assign ${enable} = addr_hit[${idx+i}] && reg_re;
   % endfor

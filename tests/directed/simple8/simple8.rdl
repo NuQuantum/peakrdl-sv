@@ -76,13 +76,19 @@ addrmap simple8 {
         field {} a[8];
     };
 
-    my_regfile my_regfile[2] @ 0x0;
-    ptime      my_ptime      @ 0xC;
-    stb        my_stb        @ 0xD;
-    wide_reg   my_wide       @ 0x10;
-    wide_reg   my_array[4]   @ 0x20;
-    data       my_data[2]    @ 0x30;
-    wide_reg   my_wide_2     @ 0x40;
-    ptime my_ptime_high      @ 0xFF8;
-    ptime my_ptime_high1     @ 0xFFC;
+    reg const {
+        field {hw = r; sw = r;} data[8] = 0xAB;
+    };
+
+    internal my_regfile  my_regfile[2]   @ 0x0;
+    internal ptime       my_ptime        @ 0xC;
+    internal stb         my_stb          @ 0xD;
+    internal wide_reg    my_wide         @ 0x10;
+    internal wide_reg    my_array[4]     @ 0x20;
+    internal data        my_data[2]      @ 0x30;
+    external data        my_data_ext     @ 0x40;
+    internal wide_reg    my_wide_2       @ 0x50;
+    internal const       const           @ 0x60;
+    internal ptime       my_ptime_high   @ 0xFF8;
+    internal ptime       my_ptime_high1  @ 0xFFC;
 };
