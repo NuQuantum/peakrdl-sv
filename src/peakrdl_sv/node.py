@@ -109,9 +109,8 @@ class Field(Node):
         in the reg2hw struct that contains the 'q', 'qe', and 're' fields.
 
         """
-        if not self.is_hw_readable:
-            return 0
-        return self.width + int(self.needs_qe) + int(self.needs_qre)
+        bits = self.width if self.implements_storage else 0
+        return bits + int(self.needs_qe) + int(self.needs_qre)
 
     def get_hw2reg_struct_bits(self) -> int:
         """Returns the number of bits used in the hw2reg struct.
@@ -129,6 +128,14 @@ class Field(Node):
 
 
 class Register(Node):
+    @property
+    def needs_qe(self) -> bool:
+        return any([f.needs_qe for f in self])
+
+    @property
+    def needs_qre(self) -> bool:
+        return any([f.needs_qre for f in self])
+
     @property
     def accesswidth(self) -> int:
         """Returns the SW access width in bits."""

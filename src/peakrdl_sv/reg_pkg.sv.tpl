@@ -19,10 +19,14 @@ package ${lname}_reg_pkg;
 
 
   % for r in registers:
+  ## Only create the reg2hw if we need q, qe or qre signals.
+  % if r.has_hw_readable or r.needs_qe or r.needs_qre:
   // ${r.path()}
   typedef struct packed {
   % if len(r) == 1:
+    % if r[0].implements_storage:
     logic ${sv_bitarray(r[0])}q;
+    % endif
     % if r[0].needs_qe:
     logic qe;
     % endif
@@ -32,7 +36,9 @@ package ${lname}_reg_pkg;
   % else:
     % for f in reversed(r):
     struct packed {
+      % if f.implements_storage:
       logic ${sv_bitarray(f)}q;
+      % endif
       % if f.needs_qe:
       logic qe;
       % endif
@@ -44,6 +50,7 @@ package ${lname}_reg_pkg;
   % endif
   } ${r.owning_addrmap.inst_name.lower()}_reg2hw_${r.path().lower()}_t;
 
+  % endif
   % endfor\
 
   % for r in registers:
@@ -51,12 +58,16 @@ package ${lname}_reg_pkg;
   typedef struct packed {
     % if len(r) == 1:
     logic ${sv_bitarray(r[0])} d;
+    % if r[0].implements_storage:
     logic de;
+    % endif
     % else:
     % for f in reversed(r):
     struct packed {
       logic ${sv_bitarray(f)} d;
+    % if f.implements_storage:
       logic de;
+    % endif
     } ${f.name.lower()};
     % endfor
     % endif
@@ -71,7 +82,7 @@ package ${lname}_reg_pkg;
   nbits = sum([f.get_reg2hw_struct_bits() for r in registers for f in r])
 %>\
   % for r in registers:
-    % if r.has_hw_readable:
+    % if r.has_hw_readable or r.needs_qe or r.needs_qre:
 <%
   reg_bits = sum([f.get_reg2hw_struct_bits() for f in r])
   msb = nbits - tmp - 1
