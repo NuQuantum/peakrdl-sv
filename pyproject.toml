@@ -1,31 +1,29 @@
 [project]
 name = "peakrdl-sv"
 description = "A SystemRDL exporter for SystemVerilog "
-authors = [
-    {name = "Shareef Jalloq", email = "shareef@nu-quantum.com"}
-]
+authors = [{ name = "Shareef Jalloq", email = "shareef@nu-quantum.com" }]
 readme = "README.md"
-keywords = ["SystemRDL", "exporter", "SystemVerilog", "Verilog", "Register File", "Register", "CSR"]
+keywords = [
+    "SystemRDL",
+    "exporter",
+    "SystemVerilog",
+    "Verilog",
+    "Register File",
+    "Register",
+    "CSR",
+]
 requires-python = ">=3.9"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
-dependencies = [
-    "systemrdl-compiler",
-    "peakrdl",
-    "mako",
-]
+dependencies = ["systemrdl-compiler", "peakrdl", "mako"]
 # dynamic = ["version"]
 version = "0.0.1"
 
 [build-system]
-requires = [
-    "setuptools",
-    "wheel",
-    "setuptools_scm[toml]>=6.0",
-]
+requires = ["setuptools", "wheel", "setuptools_scm[toml]>=6.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -39,4 +37,5 @@ line-length = 88
 experimental-string-processing = true
 
 [project.entry-points."peakrdl.exporters"]
-sv = "peakrdl_sv.__peakrdl__:Exporter"
+sv = "peakrdl_sv.__peakrdl__:VerilogExporter"
+py = "peakrdl_sv.__peakrdl__:PythonExporter"
