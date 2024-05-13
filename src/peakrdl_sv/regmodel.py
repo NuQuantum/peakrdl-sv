@@ -180,7 +180,7 @@ class RegModel:
         self._log.debug(f"Target ({reg_name}) has {target.subregs} subregs")
 
         # If no data provided, get from mirror get the register value
-        write_data = data or self.get(reg_name)
+        write_data = data if data is not None else self.get(reg_name)
 
         # we need to write in `accesswidth` chunks
         for subreg in range(target.subregs):
