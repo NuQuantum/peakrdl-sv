@@ -9,7 +9,7 @@ from pathlib import Path
 from pkg_resources import resource_filename
 from systemrdl import RDLCompiler
 
-from peakrdl_sv.exporter import VerilogExporter
+from peakrdl_sv.exporter import VerilogExporterBase
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def export(args):
     rdlc.compile_file(args.filename)
 
     root = rdlc.elaborate()
-    exporter = VerilogExporter()
+    exporter = VerilogExporterBase()
     exporter.export(root, args)
 
     if args.include_subreg:
@@ -63,6 +63,7 @@ def get_parser():
     parser.add_argument(
         "-o",
         "--output",
+        required=True,
         help="Specify the output path",
     )
 
