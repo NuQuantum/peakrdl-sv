@@ -106,10 +106,10 @@ module ${lblock}_reg_top
   subreg_idx = f.msb // r.accesswidth
 
   if r.is_wide:
-    we_expr = reg_enables[r.path().lower()]['we'][subreg_idx] if f.is_sw_writable else ""
+    we_expr = reg_enables[r.path().lower()]['we'][subreg_idx] if f.is_sw_writable else "'0"
     re_expr = reg_enables[r.path().lower()]['re'][subreg_idx] if f.needs_qre else ""
   else:
-    we_expr = f"{r.path().lower()}_we" if f.is_sw_writable else ""
+    we_expr = f"{r.path().lower()}_we" if f.is_sw_writable else "'0"
     re_expr = f"{r.path().lower()}_re" if f.needs_qre else ""
 
   wd_expr = f"{f.path().lower()}_wd" if f.is_sw_writable else ""
