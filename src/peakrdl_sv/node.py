@@ -232,7 +232,7 @@ class AddressMap(Node):
 
     @property
     def addrwidth(self) -> int:
-        return self.size.bit_length()
+        return (self.size - 1).bit_length()
 
     @property
     def accesswidth(self) -> int:
