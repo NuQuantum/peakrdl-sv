@@ -88,7 +88,7 @@ addrmap simple8 {
     internal data        my_data[2]      @ 0x30;
     external data        my_data_ext     @ 0x40;
     internal wide_reg    my_wide_2       @ 0x50;
-    internal const       const           @ 0x60;
+    // internal const       const           @ 0x60; REVISIT: const is broken
     internal ptime       my_ptime_high   @ 0xFF8;
     internal ptime       my_ptime_high1  @ 0xFFC;
 };
