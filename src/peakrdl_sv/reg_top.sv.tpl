@@ -286,21 +286,21 @@ endmodule
 <%def name="onwrite_gen(field)" filter="trim">\
   % if field.onwrite == None:
 OnWriteNone
-  % elif isinstance(field.onwrite, OnWriteType.woset):
+  % elif field.onwrite == OnWriteType.woset:
 OnWriteWoset
-  % elif isinstance(field.onwrite, OnWriteType.woclr):
+  % elif field.onwrite == OnWriteType.woclr:
 OnWriteWoclr
-  % elif isinstance(field.onwrite, OnWriteType.wot):
+  % elif field.onwrite == OnWriteType.wot:
 OnWriteWot
-  % elif isinstance(field.onwrite, OnWriteType.wzs):
+  % elif field.onwrite == OnWriteType.wzs:
 OnWriteWzs
-  % elif isinstance(field.onwrite, OnWriteType.wzc):
+  % elif field.onwrite == OnWriteType.wzc:
 OnWriteWzc
-  % elif isinstance(field.onwrite, OnWriteType.wzt):
+  % elif field.onwrite == OnWriteType.wzt:
 OnWriteWzt
-  % elif isinstance(field.onwrite, OnWriteType.wclr):
+  % elif field.onwrite == OnWriteType.wclr:
 OnWriteWclr
-  % elif isinstance(field.onwrite, OnWriteType.wset):
+  % elif field.onwrite == OnWriteType.wset:
 OnWriteWset
   % endif
 </%def>\

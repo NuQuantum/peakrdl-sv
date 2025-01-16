@@ -1,3 +1,5 @@
+all: sv lint
+
 sv:
 	peakrdl sv -o rtl simple8.rdl
 	sv-exporter -o rtl install
