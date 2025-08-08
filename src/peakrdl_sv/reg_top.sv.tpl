@@ -66,9 +66,12 @@ module ${lblock}_reg_top
   output logic [DW-1:0] reg_rdata,
 
   // HW I/F
+  % if block.has_reg2hw:
   output ${lblock}_reg_pkg::${lblock}_reg2hw_t reg2hw, // Write
+  % endif
+  % if block.has_hw2reg:
   input  ${lblock}_reg_pkg::${lblock}_hw2reg_t hw2reg  // Read
-
+  % endif
 );
 
   // --------------------------------------------------------------------------------

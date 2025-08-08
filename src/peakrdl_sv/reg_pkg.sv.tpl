@@ -75,6 +75,8 @@ package ${lname}_reg_pkg;
 
   % endfor
 
+  ## Only create the reg2hw if there is atleast one register requiring q, qe or qre signals.
+  %if block.has_reg2hw:
   // Register -> HW
   typedef struct packed {
 <%
@@ -95,7 +97,10 @@ package ${lname}_reg_pkg;
     % endif
   % endfor
   } ${lname}_reg2hw_t;
+  % endif
 
+  ## Only create the hw2reg if there is atleast one register that is hw_writable.
+  % if block.has_hw2reg:
   // HW -> Register
   typedef struct packed {
 <%
@@ -116,6 +121,7 @@ package ${lname}_reg_pkg;
     % endif
   % endfor
   } ${lname}_hw2reg_t;
+  % endif
 
   // Register address offsets
   % for r in registers:
