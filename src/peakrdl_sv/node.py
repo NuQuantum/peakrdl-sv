@@ -157,6 +157,16 @@ class Register(Node):
         return self.regwidth > self.accesswidth
 
     @property
+    def is_reg2hw(self) -> bool:
+        """Returns True if the register will be present in the reg2hw struct."""
+        return self.needs_qe or self.needs_qre or self.has_hw_readable
+
+    @property
+    def is_hw2reg(self) -> bool:
+        """Returns True if the register will be present in the hw2reg struct."""
+        return self.has_hw_writable
+
+    @property
     def addressincr(self) -> int:
         """How many bytes each SW access addresses.
 
@@ -231,9 +241,19 @@ class AddressMap(Node):
         return registers
 
     @property
+    def has_hw2reg(self) -> bool:
+        """Returns True if any register has a hw2reg struct."""
+        return any([reg.is_hw2reg for reg in self.get_registers()])
+
+    @property
+    def has_reg2hw(self) -> bool:
+        """Returns True if any register has a reg2hw struct."""
+        return any([reg.is_reg2hw for reg in self.get_registers()])
+
+    @property
     def addrwidth(self) -> int:
         return (self.size - 1).bit_length()
 
     @property
     def accesswidth(self) -> int:
-        return min([reg.get_property("accesswidth") for reg in self.get_registers()])
+        return min([reg.accesswidth for reg in self.get_registers()])
