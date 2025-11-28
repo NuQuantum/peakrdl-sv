@@ -55,9 +55,8 @@ async def assert_field_match(tb: Testbench, register: str, field: str) -> None:
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_bringup(dut):
-    """Bringup"""
-
+async def test_bringup(dut) -> None:
+    """Bringup."""
     tb = Testbench(dut, addr_map, debug)
 
     # init the dut
@@ -69,9 +68,8 @@ async def test_bringup(dut):
 
 
 @cocotb.coroutine
-async def test_register_read_write(dut, target):
-    """Writes to a register and reads back the value"""
-
+async def test_register_read_write(dut, target) -> None:
+    """Writes to a register and reads back the value."""
     tb = Testbench(dut, addr_map, debug)
 
     # reset the dut
@@ -94,9 +92,8 @@ factory.generate_tests()
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_register_array_read_write(dut):
-    """Writes to a register and reads back the value"""
-
+async def test_register_array_read_write(dut) -> None:
+    """Writes to a register and reads back the value."""
     tb = Testbench(dut, addr_map)
 
     # reset the dut
@@ -114,9 +111,8 @@ async def test_register_array_read_write(dut):
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_field_read_write(dut):
-    """Writes to a field and reads back the value"""
-
+async def test_field_read_write(dut) -> None:
+    """Writes to a field and reads back the value."""
     tb = Testbench(dut, addr_map, debug)
 
     # init the dut
@@ -147,9 +143,8 @@ async def test_field_read_write(dut):
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_wide_register_read_write(dut):
-    """Writes to a wide register and reads back the value"""
-
+async def test_wide_register_read_write(dut) -> None:
+    """Writes to a wide register and reads back the value."""
     tb = Testbench(dut, addr_map, debug)
 
     # reset the dut
@@ -177,10 +172,10 @@ async def test_wide_register_read_write(dut):
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_wide_narrow_register_read_write(dut):
-    """writes to the fields of a register which is wide (> accesswidth) but has fields
-    which are smaller than the accesswidth"""
-
+async def test_wide_narrow_register_read_write(dut) -> None:
+    """Writes to the fields of a register which is wide (> accesswidth) but has fields
+    which are smaller than the accesswidth.
+    """
     tb = Testbench(dut, addr_map, debug)
     await tb.reset()
 

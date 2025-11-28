@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 
 # TODO: Updgrade to a Transaction Class - currently not supported by the RegModel
 class CsrTransaction:
-    def __init__(self, addr: int, wdata=None):
+    def __init__(self, addr: int, wdata=None) -> None:
         self.addr = addr
         self.wdata = wdata
         self.rdata = 0
@@ -26,23 +26,23 @@ class CsrTransaction:
         return self.wdata is not None
 
     @property
-    def re(self):
+    def re(self) -> int:
         return 0 if self.is_write else 1
 
     @property
-    def we(self):
+    def we(self) -> int:
         return 1 if self.is_write else 0
 
 
 class CsrDriver(BusDriver):
     _signals = ["re", "we", "addr", "rdata", "wdata"]
 
-    def __init__(self, dut, clock, name="reg", **kwargs):
+    def __init__(self, dut, clock, name="reg", **kwargs) -> None:
         BusDriver.__init__(self, dut, name, clock, **kwargs)
 
     # BusDriver classes have a singular _driver_send async method
     async def _driver_send(self, addr: int, wdata: int | None = None) -> int:
-        """Writes a value to a register
+        """Writes a value to a register.
 
         :param addr: Absolute register address to read/write to
         :type addr: int
@@ -65,7 +65,7 @@ class CsrDriver(BusDriver):
 
 
 class Testbench:
-    def __init__(self, dut, rdl_file: str, debug: bool = False):
+    def __init__(self, dut, rdl_file: str, debug: bool = False) -> None:
         self.dut = dut
 
         # Initialise the bus to something useful - for now assume that the bus is a CSR
@@ -100,8 +100,7 @@ class Testbench:
         cocotb.start_soon(Clock(dut.clk, 5, "ns").start())
 
     async def reset(self) -> None:
-        """Resets the DUT to a know state, aware of the active low/high reset"""
-
+        """Resets the DUT to a know state, aware of the active low/high reset."""
         self._log.debug("Resetting DUT")
 
         # if reset type is even (0 or 2) then active high

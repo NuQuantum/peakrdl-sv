@@ -1,7 +1,11 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling", "uv-dynamic-versioning"]
+
 [project]
 name = "peakrdl-sv"
 description = "A SystemRDL exporter for SystemVerilog "
-authors = [{ name = "Shareef Jalloq", email = "shareef@nu-quantum.com" }]
+authors = [{ name = "Nu Quantum Ltd."} ]
 readme = "README.md"
 keywords = [
     "SystemRDL",
@@ -12,30 +16,87 @@ keywords = [
     "Register",
     "CSR",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
-dependencies = ["systemrdl-compiler", "peakrdl", "mako"]
-# dynamic = ["version"]
-version = "0.0.1"
+dependencies = ["systemrdl-compiler", "peakrdl", "mako",]
+dynamic = ["version"]
 
-[build-system]
-requires = ["setuptools", "wheel", "setuptools_scm[toml]>=6.0"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "numpy",
+    "cocotb",
+    "cocotb-bus",
+    "pytest",
+    "setuptools"
+]
 
 [project.scripts]
 sv-exporter = "peakrdl_sv.main:main"
 
-[tool.black]
-line-length = 88
-experimental-string-processing = true
-
 [project.entry-points."peakrdl.exporters"]
 sv = "peakrdl_sv.__peakrdl__:VerilogExporter"
 py = "peakrdl_sv.__peakrdl__:PythonExporter"
+
+[tool.hatch]
+metadata.allow-direct-references = true
+version.source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+dirty = true
+metadata = true
+pattern = 'default-unprefixed' # because default requires a 'v' prefix
+vcs = "git"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310" # Match minimum requires-python version
+fix = true
+unsafe-fixes = true
+exclude = ["tests/"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+disallow_any_generics = false
+
+[tool.ruff.format]
+skip-magic-trailing-comma = false # preserve trailing comma formatting
+
+[tool.ruff.lint]
+select = [
+    "F",    # Pyflakes (undefined names, unused imports)
+    "E",    # pycodestyle (style errors)
+    "W",    # pycodestyle (style warnings)
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming
+    "D",    # pydocstyle
+    "UP",   # pyupgrade (modernize syntax)
+    "YTT",  # flake8-2020 (year-based checks)
+    "ANN",  # flake8-annotations
+    "B",    # flake8-bugbear (common bugs)
+    "A",    # flake8-builtins (shadowing builtins)
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib
+    "PD",   # pandas-vet
+    "PL",   # pylint rules
+    "PERF", # perflint
+    "RUF",  # ruff-specified rules
+]
+ignore = [
+    "T201",   # remove print (used for debugging and output in some cases)
+]
+
+[tool.ruff.per-file-ignores]
+"src/peakrdl_sv/listener.py" = [
+    "N802", # Function name should be lowercase (implements base class functions)
+    "ARG002", # Unused function arguments
+]
