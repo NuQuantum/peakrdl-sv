@@ -1,14 +1,35 @@
-DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+# Source this file to install and activate the virtual environment from scratch
 VENV=.venv
 
-if [[ ! -e $VENV ]]; then
-    python3 -m venv $VENV
-    source $VENV/bin/activate
-    pip install -U pip wheel
-    pip install -r requirements.txt
-    pip install -e .
-else
-    source $VENV/bin/activate
+CLEAN=0
+UV_SYNC_EXTRA_ARGS=
+
+# Process flags
+for arg in "$@"; do
+  case $arg in
+        --clean)
+            CLEAN=1
+            ;;
+        --upgrade)
+            UV_SYNC_EXTRA_ARGS="$UV_SYNC_EXTRA_ARGS --upgrade"
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            echo "Usage: source ${BASH_SOURCE[0]} [--clean] [--upgrade]"
+            return 1
+            ;;
+    esac
+done
+
+# If --clean flag is set and VENV exists, remove it
+if [[ $CLEAN -eq 1 && -d $VENV ]]; then
+  echo "Cleaning existing virtual environment..."
+  rm -rf "$VENV"
 fi
+
+uv venv --allow-existing
+source "$VENV/bin/activate"
+uv sync --all-extras $UV_SYNC_EXTRA_ARGS
+uv lock
 
 pre-commit install

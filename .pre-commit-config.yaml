@@ -14,38 +14,21 @@ repos:
       args: ['--maxkb=200']
       exclude: '^docs/source/theory/dsp/diagrams'
 
-  - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.12.0
+  # Python format and lint with ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.6
     hooks:
-    - id: reorder-python-imports
-      args: [
-        --application-directories, '.:src',
-        --py38-plus,
-        --add-import, 'from __future__ import annotations',
-      ]
+      - id: ruff-check
+        args: [--config, pyproject.toml]
+      - id: ruff-format
+        args: [--config, pyproject.toml]
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+  # Type checking with mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
     hooks:
-    - id: pyupgrade
-      args: [--py38-plus]
-
-  - repo: https://github.com/asottile/add-trailing-comma
-    rev: v3.1.0
-    hooks:
-    - id: add-trailing-comma
-
-  - repo: https://github.com/psf/black
-    rev: 23.12.1
-    hooks:
-    - id: black
-
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
-    hooks:
-    - id: flake8
-      args: [--max-line-length=88]
-      exclude: '.*/migen/.*'
+      - id: mypy
+        exclude: ^(tests/)
 
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v14.0.0 # Must match clang-format version
