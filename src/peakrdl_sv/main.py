@@ -1,9 +1,12 @@
+"""CLI application for peakrdl-sv."""
+
 #!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
 import logging
 import shutil
+import sys
 from pathlib import Path
 
 from pkg_resources import resource_filename
@@ -11,20 +14,34 @@ from systemrdl import RDLCompiler
 
 from peakrdl_sv.exporter import VerilogExporterBase
 
-
 logger = logging.getLogger(__name__)
 
 
-def create_output_directory(output):
+def create_output_directory(output: str) -> Path:
+    """Create a directory at the specified location.
+
+    Args:
+      output (str): The output directory name
+
+    Returns:
+        Path: The path to the created directory
+
+    """
     try:
         outpath = Path(output)
         outpath.mkdir(parents=True, exist_ok=True)
         return outpath.absolute()
     except TypeError:
-        return Path(".").absolute()
+        return Path().absolute()
 
 
-def export(args):
+def export(args: argparse.Namespace) -> None:
+    """Run the peakrdl-sv tool on an input file, and dumps the output to a file.
+
+    Args:
+      args: Namespace containing "output" and "filename"
+
+    """
     outpath = create_output_directory(args.output)
     logging.debug("running peakrdl-sv; output dumped to " + str(outpath))
 
@@ -39,7 +56,13 @@ def export(args):
         install(args)
 
 
-def install(args):
+def install(args: argparse.Namespace) -> None:
+    """Install the peakrdl-sv output verillog to a particular directory.
+
+    Args:
+      args: Namespace containing "output"
+
+    """
     outpath = create_output_directory(args.output)
     logging.debug("installing SV to " + str(outpath))
     data = Path(resource_filename("peakrdl_sv", "data"))
@@ -49,7 +72,8 @@ def install(args):
         shutil.copy2(src, dst)
 
 
-def get_parser():
+def get_parser() -> argparse.ArgumentParser:
+    """Generate the CLI parser."""
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
@@ -99,7 +123,8 @@ def get_parser():
     return parser
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace | None:
+    """Parse the CLI args."""
     parser = get_parser()
     args = parser.parse_args()
 
@@ -112,10 +137,11 @@ def parse_args():
         return None
 
 
-def main():
+def main() -> None:
+    """Execte the peakrdl-sv exported application."""
     args = parse_args()
-    if not args:
-        exit(0)
+    if args is None:
+        sys.exit(0)
 
     level = logging.INFO
     if args.verbose:
