@@ -66,11 +66,15 @@ module ${lblock}_reg_top
   output logic [DW-1:0] reg_rdata,
 
   // HW I/F
-  % if block.has_reg2hw:
+  % if block.has_reg2hw and block.has_hw2reg:
   output ${lblock}_reg_pkg::${lblock}_reg2hw_t reg2hw, // Write
-  % endif
-  % if block.has_hw2reg:
   input  ${lblock}_reg_pkg::${lblock}_hw2reg_t hw2reg  // Read
+  % elif block.has_reg2hw and not block.has_hw2reg:
+  output ${lblock}_reg_pkg::${lblock}_reg2hw_t reg2hw  // Write
+  % elif not block.has_reg2hw and block.has_hw2reg:
+  input  ${lblock}_reg_pkg::${lblock}_hw2reg_t hw2reg  // Read
+  % else:
+  // This register block has no read/write interface
   % endif
 );
 
