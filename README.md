@@ -7,6 +7,63 @@ The design philosophy was to keep it simple and avoid the complexity of implemen
 the full SystemRDL language.  As such there are limitations on what is supported and
 there are no plans to extend support beyond the basics.
 
+## Installation
+
+```shell
+$ pip install git+https://github.com/nuquantum/peakrdl-sv
+```
+
+## Usage
+
+The exporter integrates with PeakRDL via the plugin flow defined here:
+https://peakrdl.readthedocs.io/en/latest/for-devs/exporter-plugin.html
+
+```
+$ peakrdl sv -o ./generated <filename.rdl>
+```
+
+You can also run a standalone script that offers both `export` and `install`
+targets.  The latter will install the required RTL dependencies to a local directory.
+This can also be done at the `export` stage by passing the `--include-subreg` argument.
+
+```
+$ sv-exporter -h
+usage: sv-exporter [-h] [-v] [-o OUTPUT] {export,install} ...
+
+positional arguments:
+  {export,install}
+    export              Run the SystemVerlog RDL exporter
+    install             Install SV source files into local tree
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Enable verbose logging
+  -o OUTPUT, --output OUTPUT
+                        Specify the output path
+
+$ sv-exporter -o ./rtl install
+$ sv-exporter -0 ./rtl export <filename>.rdl
+$ sv-exporter -0 ./rtl export --include-subreg <filename>.rdl
+```
+
+## Contributing
+
+### Requirements
+
+* uv - [installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+
+### Developer Environment
+
+A `sourceme` is provided that will setup the development environment with necessary packages
+and environment variables.
+
+```shell
+. sourceme [--clean] [--upgrade]
+```
+
+Linting and formatting are enforced via [pre-commit](https://pre-commit.com/) hooks, which
+are configured upon sourcing the `sourceme`.
+
 ## Alternatives
 
 There are already many Verilog SystemRDL exporters out there including `PeakRDL-regblock`
@@ -85,63 +142,6 @@ The hierarchy of the generated RTL is shown below:
           +---- rdl_subreg u_field_name_2
           |
           ...
-```
-
-## Contributing
-
-### Requirements
-
-* uv - [installation guide](https://docs.astral.sh/uv/getting-started/installation/)
-
-### Developer Environment
-
-A `sourceme` is provided that will setup the development environment with necessary packages
-and environment variables.
-
-```shell
-. sourceme [--clean] [--upgrade]
-```
-
-Linting and formatting are enforced via [pre-commit](https://pre-commit.com/) hooks, which
-are configured upon sourcing the `sourceme`.
-
-## Installation
-
-```shell
-$ uv pip install git+https://github.com/nuquantum/peakrdl-sv
-```
-
-## Usage
-
-The exporter integrates with PeakRDL via the plugin flow defined here:
-https://peakrdl.readthedocs.io/en/latest/for-devs/exporter-plugin.html
-
-```
-$ peakrdl sv -o ./generated <filename.rdl>
-```
-
-You can also run a standalone script that offers both `export` and `install`
-targets.  The latter will install the required RTL dependencies to a local directory.
-This can also be done at the `export` stage by passing the `--include-subreg` argument.
-
-```
-$ sv-exporter -h
-usage: sv-exporter [-h] [-v] [-o OUTPUT] {export,install} ...
-
-positional arguments:
-  {export,install}
-    export              Run the SystemVerlog RDL exporter
-    install             Install SV source files into local tree
-
-options:
-  -h, --help            show this help message and exit
-  -v, --verbose         Enable verbose logging
-  -o OUTPUT, --output OUTPUT
-                        Specify the output path
-
-$ sv-exporter -o ./rtl install
-$ sv-exporter -0 ./rtl export <filename>.rdl
-$ sv-exporter -0 ./rtl export --include-subreg <filename>.rdl
 ```
 
 ## Limitations
