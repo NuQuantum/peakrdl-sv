@@ -63,10 +63,9 @@ lineage from the OpenTitan work in this exporter in both the RTL and Mako templa
 
 ### RTL Hierarchy
 
-REVISIT: flesh out this section.
-
 The hierarchy of the generated RTL is shown below:
 
+```
  +---- <block>_reg_pkg
  |
  +---- <block>_reg_top
@@ -86,13 +85,30 @@ The hierarchy of the generated RTL is shown below:
           +---- rdl_subreg u_field_name_2
           |
           ...
+```
 
+## Contributing
 
+### Requirements
+
+* uv - [installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+
+### Developer Environment
+
+A `sourceme` is provided that will setup the development environment with necessary packages
+and environment variables.
+
+```shell
+. sourceme [--clean] [--upgrade]
+```
+
+Linting and formatting are enforced via [pre-commit](https://pre-commit.com/) hooks, which
+are configured upon sourcing the `sourceme`.
 
 ## Installation
 
-```
-$ pip install git+https://github.com/nuquantum/peakrdl-sv
+```shell
+$ uv pip install git+https://github.com/nuquantum/peakrdl-sv
 ```
 
 ## Usage
@@ -135,9 +151,127 @@ The following is a list of current limitations and assumptions:
 * there is a single toplevel address map
 * only support for a single sw access width
 * no support for register widths > access width
-* no support for countrs
+* no support for counters
 * no support for aliases
 * no support for interrupt registers
 * no support for halt registers
 * no support for swacc
 * no support for onread side effects
+
+Feel free to put in a pull request to add desired features which may be missing!
+
+## Full Example
+
+Given a register map definition `example.rdl`:
+
+```rdl
+addrmap an_addrmap {
+
+    name = "Example register map";
+    default accesswidth = 8;
+    default regwidth = 8;
+
+    regfile a_regfile {
+        reg {
+            field {
+                hw   = r;
+                sw   = rw;
+            } en[1] = 0x0;
+            field {
+                hw   = r;
+                sw   = rw;
+            } sel[2] = 0x0;
+        } control ;
+        reg {
+            name = "Status";
+            desc = "Register description";
+            field {
+                name = "Interrupt request";
+                desc = "Field description";
+                hw   = w;
+                sw   = r;
+            } irq[1] = 0x0;
+        } status ;
+    } ;
+
+    reg a_stb {
+        field {
+            hw = r;
+            sw = w;
+            swmod;
+        } data[7:0] = 0x1;
+    } ;
+
+    internal a_regfile  my_regfile[2]   @ 0x0;
+    internal a_stb      my_stb          @ 0xC;
+};
+```
+
+Run the exporter to generate output products:
+
+```
+mkdir -p rdl && peakrdl sv --reset-polarity high --reset-type async -o rdl test.rdl
+```
+
+yielding an output directory:
+
+```
+rdl
+├── an_addrmap_reg_pkg.sv
+└── an_addrmap_reg_top.sv
+```
+
+Then instance in a SystemVerilog module which uses the register map as:
+
+```sv
+module my_module
+  import an_addrmap_reg_pkg::*;
+  import rdl_subreg_pkg::*;
+(
+  input  logic       clk,
+  input  logic       rst,
+  // CSR interface
+  input  logic       reg_we,
+  input  logic       reg_re,
+  input  logic [3:0] reg_addr,
+  input  logic [7:0] reg_wdata,
+  output logic [7:0] reg_rdata,
+  // External inputs
+  input logic        irq,
+)
+
+  // Register access structs
+  an_addrmap_reg_pkg::an_addrmap_reg2hw_t reg2hw;
+  an_addrmap_reg_pkg::an_addrmap_hw2reg_t hw2reg;
+
+  logic [1:0] sel;
+  logic       en;
+
+  an_addrmap_reg_top #(
+    .ResetType(ActiveHighSync)
+  ) u_csr (
+    .clk,
+    .rst,
+    // CSR I/F
+    .reg_we,
+    .reg_re,
+    .reg_addr,
+    .reg_wdata,
+    .reg_rdata,
+    // HW I/F
+    .reg2hw, // Write
+    .hw2reg  // Read
+  );
+
+  // Read a register value into hardware
+  assign sel = reg2hw.my_regfile_0_control.sel.q;
+  assign en  = reg2hw.my_regfile_0_control.en.q;
+
+  // Write to a register form hardware
+  assign reg2hw.my_regfile_1_status.irq.d = irq;
+
+endmodule;
+```
+
+The registers may be programmed from software by driving the CSR interface presented by
+the `an_addrmap_reg_top` module.
