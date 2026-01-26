@@ -2,6 +2,9 @@
 build-backend = "hatchling.build"
 requires = ["hatchling", "uv-dynamic-versioning"]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/peakrdl_sv"]
+
 [project]
 name = "peakrdl-sv"
 description = "A SystemRDL exporter for SystemVerilog "
@@ -28,10 +31,9 @@ dynamic = ["version"]
 dev = [
     "pre-commit",
     "numpy",
-    "cocotb",
-    "cocotb-bus",
+    "cocotb==1.9.1",
+    "cocotb-bus==0.2.1",
     "pytest",
-    "setuptools"
 ]
 
 [project.scripts]
@@ -95,7 +97,7 @@ ignore = [
     "T201",   # remove print (used for debugging and output in some cases)
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "src/peakrdl_sv/listener.py" = [
     "N802", # Function name should be lowercase (implements base class functions)
     "ARG002", # Unused function arguments

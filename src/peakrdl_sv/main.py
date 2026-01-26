@@ -7,9 +7,9 @@ import argparse
 import logging
 import shutil
 import sys
+from importlib.resources import files
 from pathlib import Path
 
-from pkg_resources import resource_filename
 from systemrdl import RDLCompiler
 
 from peakrdl_sv.exporter import VerilogExporterBase
@@ -65,11 +65,14 @@ def install(args: argparse.Namespace) -> None:
     """
     outpath = create_output_directory(args.output)
     logging.debug("installing SV to " + str(outpath))
-    data = Path(resource_filename("peakrdl_sv", "data"))
-    for src in data.glob("*.sv"):
+    for src in [
+        item
+        for item in files("peakrdl_sv").joinpath("data").iterdir()
+        if item.is_file() and item.name.endswith(".sv")
+    ]:
         dst = outpath / src.name
         logger.debug(f"copying {src} to {dst}")
-        shutil.copy2(src, dst)
+        shutil.copy2(src.name, dst.name)
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -130,11 +133,13 @@ def parse_args() -> argparse.Namespace | None:
 
     if hasattr(args, "func"):
         return args
+
     if hasattr(args, "subparser"):
         args.subparser.print_help()
     else:
         parser.print_help()
-        return None
+
+    return None
 
 
 def main() -> None:
