@@ -1,3 +1,4 @@
+# mypy: disable-error-code="no-any-return"
 """Wrappers around the PeakRDL node types to support peakrdl-sv mako templates."""
 
 from __future__ import annotations
@@ -313,9 +314,10 @@ class AddressMap(Node):
                 case _:
                     raise RuntimeError(f"unrecognised type: {type(child)}")
 
-        registers = []
-        for _i, child in enumerate(self):
+        registers: list[Register] = []
+        for child in self:
             get_child_regs(child, registers)
+
         return registers
 
     @property
