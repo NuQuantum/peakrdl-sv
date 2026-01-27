@@ -33,6 +33,6 @@ clean::
 	rm -rf rtl
 	rm -f results.xml
 
-test:
+test: $(.DEFAULT_GOAL)
 	@echo $(RTL_PKG_FILES)
 	@echo $(RTL_SRC_FILES)

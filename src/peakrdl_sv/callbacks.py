@@ -1,7 +1,8 @@
+"""Callback utility classes."""
+
 from __future__ import annotations
 
-from typing import Callable
-from typing import Coroutine
+from collections.abc import Callable, Coroutine
 
 WriteCallback = Callable[[int, int, int], None]
 AsyncWriteCallback = Callable[[int, int, int], Coroutine[None, None, None]]
@@ -10,24 +11,13 @@ AsyncReadCallback = Callable[[int, int, int], Coroutine[None, None, int]]
 
 
 class CallbackSet:
-    """Class to hold a set of callbacks, this reduces the number of callback that need
-    to be passed around
-
-        :param write_callback: write regardless of space, defaults to None
-        :type write_callback: WriteCallback | None, optional
-        :param async_write_callback: write and block if no space, defaults to None
-        :type async_write_callback: AsyncWriteCallback | None, optional
-        :param read_callback: read regardless of emptyness, defaults to None
-        :type read_callback: ReadCallback | None, optional
-        :param async_read_callback: read and block if empty, defaults to None
-        :type async_read_callback: AsyncReadCallback | None, optional
-    """
+    """Class to hold a set of callbacks."""
 
     __slots__ = [
-        "_write_callback",
+        "_async_read_callback",
         "_async_write_callback",
         "_read_callback",
-        "_async_read_callback",
+        "_write_callback",
     ]
 
     def __init__(
@@ -36,7 +26,16 @@ class CallbackSet:
         async_write_callback: AsyncWriteCallback | None = None,
         read_callback: ReadCallback | None = None,
         async_read_callback: AsyncReadCallback | None = None,
-    ):
+    ) -> None:
+        """Initialise the callback set.
+
+        Args:
+          write_callback(WriteCallback | None, optional): write regardless of space, defaults to None
+          async_write_callback(AsyncWriteCallback | None, optional): write and block if no space, defaults to None
+          read_callback(ReadCallback | None, optional): read regardless of emptyness, defaults to None
+          async_read_callback(AsyncReadCallback | None, optional): read and block if empty, defaults to None
+
+        """  # noqa: E501
         self._write_callback = write_callback
         self._async_write_callback = async_write_callback
         self._read_callback = read_callback
@@ -44,36 +43,40 @@ class CallbackSet:
 
     @property
     def write_callback(self) -> WriteCallback | None:
-        """single non-blocking write callback function
+        """Single non-blocking write callback function.
 
-        :return: call back function
-        :rtype: Optional[WriteCallback]
+        Returns:
+          Optional[WriteCallback]: call back function
+
         """
         return self._write_callback
 
     @property
     def async_write_callback(self) -> AsyncWriteCallback | None:
-        """single blocking write callback function
+        """Single blocking write callback function.
 
-        :return: call back function
-        :rtype: Optional[AsyncWriteCallback]
+        Returns:
+          Optional[AsyncWriteCallback]: call back function
+
         """
         return self._async_write_callback
 
     @property
     def read_callback(self) -> ReadCallback | None:
-        """single non-blocking read callback function
+        """Single non-blocking read callback function.
 
-        :return: call back function
-        :rtype: Optional[ReadCallback]
+        Returns:
+          Optional[ReadCallback]: call back function
+
         """
         return self._read_callback
 
     @property
     def async_read_callback(self) -> AsyncReadCallback | None:
-        """single blocking read callback function
+        """Single blocking read callback function.
 
-        :return: call back function
-        :rtype: Optional[AsyncReadCallback]
+        Returns:
+          Optional[AsyncReadCallback]: call back function
+
         """
         return self._async_read_callback
