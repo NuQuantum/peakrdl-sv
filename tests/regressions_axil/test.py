@@ -4,7 +4,6 @@ import logging
 import os
 
 import cocotb
-from cocotb.regression import TestFactory
 from testbench import Testbench
 
 logger = logging.getLogger(__name__)
@@ -69,6 +68,11 @@ async def test_bringup(dut):
         await tb.clkedge
 
 
+@cocotb.parametrize(
+    target=["r1"]
+    + [f"r2_array_{i}" for i in range(4)]
+    + [f"r{i}" for i in range(3, 9)],
+)
 async def test_register_read_write(dut, target):
     """Writes to a register and reads back the value"""
 
@@ -83,14 +87,6 @@ async def test_register_read_write(dut, target):
 
     # Assert the local version matches the HW version
     await assert_register_match(tb, target)
-
-
-factory = TestFactory(test_register_read_write)
-factory.add_option(
-    "target",
-    ["r1"] + [f"r2_array_{i}" for i in range(4)] + [f"r{i}" for i in range(3, 9)],
-)
-factory.generate_tests()
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
