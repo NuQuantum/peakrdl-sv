@@ -29,6 +29,13 @@ class VerilogExporter(ExporterSubcommandPlugin):
             help="set the reset type",
         )
 
+        arg_group.add_argument(
+            "--cpuif",
+            default="csr",
+            type=str,
+            help="Set the CPU interface type: csr, axi-lite",
+        )
+
     def do_export(self, top_node: AddrmapNode, options: argparse.Namespace) -> None:
         exporter = VerilogExporterBase()
         exporter.export(top_node, options)

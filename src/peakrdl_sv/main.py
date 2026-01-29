@@ -79,6 +79,12 @@ def get_parser():
         help="The SystemRDL file to process",
     )
     parser_export.add_argument(
+        "--cpuif",
+        choices=["csr", "axi-lite"],
+        default="csr",
+        help="Specify the CPU interface type",
+    )
+    parser_export.add_argument(
         "--include-subreg",
         action="store_true",
         help="Include the RTL dependencies",
