@@ -1,0 +1,53 @@
+addrmap test {
+  default accesswidth = 8;
+  default regwidth = 8;
+  default sw = rw;
+  default hw = rw;
+
+  reg standard_register {
+    field {} f1[7:0];
+  };
+
+  reg standard_register_with_fields {
+    field {} f1[3:0];
+    field {} f2[7:4];
+  };
+
+  reg narrow_register {
+    field {} f1[0:0];
+    field {} f2[2:1];
+    field {} f3[6:3];
+  };
+
+  reg wide_register {
+    regwidth = 16;
+    field {} f1[7:0];
+    field {} f2[15:8];
+  };
+
+  reg wide_narrow_register {
+    regwidth = 16;
+    field {} f1[7:0];
+    field {} f2[8:8];
+    field {} f3[9:9];
+    field {} f4[15:10];
+  };
+
+  reg very_wide_register {
+    regwidth = 32;
+    field {} data0[7:0];
+    field {} data1[15:8];
+    field {} data2[23:16];
+    field {} data3[31:24];
+  };
+
+  standard_register    r1 @ 0;
+  standard_register    r2_array[4] @ 1;
+  narrow_register      r3 @ 6;
+  wide_register        r4 @ 7;
+  wide_narrow_register r5 @ 9;
+  very_wide_register   r6 @ 11;
+  standard_register    r7 @ 50;
+  standard_register_with_fields r8 @ 51;
+
+};
