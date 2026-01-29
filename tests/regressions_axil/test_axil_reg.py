@@ -201,7 +201,10 @@ def test_simple_dff_runner():
     # first create files
     os.environ.update({"ADDR_MAP": str(addr_map)})
 
-    subprocess.run(["uv", "run", "peakrdl", "sv", "-o", rtl_dir, addr_map], check=True)
+    subprocess.run(
+        ["uv", "run", "peakrdl", "sv", "-o", rtl_dir, addr_map, "--cpuif", "axi-lite"],
+        check=True,
+    )
     subprocess.run(["uv", "run", "sv-exporter", "-o", rtl_dir, "install"], check=True)
 
     # start simulation
@@ -215,6 +218,7 @@ def test_simple_dff_runner():
             "rdl_subreg_flop.sv",
             "rdl_subreg_arb.sv",
             "rdl_subreg.sv",
+            "rdl_axil_to_reg.sv",
             "test_reg_pkg.sv",
             "test_reg_top.sv",
         ]
@@ -227,6 +231,7 @@ def test_simple_dff_runner():
         always=True,
         timescale=("1ns", "1ps"),
         build_dir=proj_path / "sim_build",
+        waves=True,
     )
 
     runner.test(
@@ -234,6 +239,7 @@ def test_simple_dff_runner():
         test_module=Path(__file__).stem,
         timescale=("1ns", "1ps"),
         build_dir=proj_path / "sim_build",
+        waves=True,
     )
 
 

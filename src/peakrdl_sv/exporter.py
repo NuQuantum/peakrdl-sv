@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from importlib import resources
 from pathlib import Path
 
 from mako.template import Template
@@ -39,14 +40,19 @@ class VerilogExporterBase:
         reg_pkg_path = outpath / f"{node.inst_name.lower()}_reg_pkg.sv"
         reg_top_path = outpath / f"{node.inst_name.lower()}_reg_top.sv"
 
+        if options.cpuif == "axi-lite":
+            top_tpl = "reg_top_axil.sv.tpl"
+        else:
+            top_tpl = "reg_top.sv.tpl"
+
         reg_top_tpl = Template(
-            filename=resource_filename("peakrdl_sv", "reg_top.sv.tpl"),
+            filename=str(resources.files("peakrdl_sv").joinpath(top_tpl)),
         )
         with reg_top_path.open("w") as f:
             f.write(reg_top_tpl.render(block=self.listener.top_node))
 
         reg_pkg_tpl = Template(
-            filename=resource_filename("peakrdl_sv", "reg_pkg.sv.tpl"),
+            filename=str(resources.files("peakrdl_sv").joinpath("reg_pkg.sv.tpl")),
         )
         with reg_pkg_path.open("w") as f:
             f.write(reg_pkg_tpl.render(block=self.listener.top_node))

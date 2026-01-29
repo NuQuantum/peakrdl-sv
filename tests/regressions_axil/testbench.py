@@ -7,6 +7,8 @@ from cocotb.clock import Clock
 from cocotb.handle import Immediate
 from cocotb.triggers import RisingEdge
 from cocotb_bus.drivers import BusDriver
+from cocotbext.axi.axil_channels import AxiLiteBus
+from cocotbext.axi.axil_master import AxiLiteMaster
 
 from peakrdl_sv.callbacks import CallbackSet
 from peakrdl_sv.regmodel import RegModel
@@ -73,10 +75,24 @@ class Testbench:
     def __init__(self, dut, rdl_file: str, debug: bool = False):
         self.dut = dut
 
+        # if reset type is even (0 or 2) then active high
+        self.rst_active, self.rst_inactive = (
+            (1, 0) if self.dut.ResetType.value.to_unsigned() % 2 == 0 else (0, 1)
+        )
+
         # Initialise hw2reg to zero
         self.dut.hw2reg.value = 0
+        self.dut.clk.value = Immediate(0)
+        self.dut.rst.value = Immediate(self.rst_active)
+        self.dut.s_axil_rvalid.value = Immediate(0)
 
-        self.bus = CsrDriver(self.dut, self.dut.clk)
+        self.bus = AxiLiteMaster(
+            AxiLiteBus.from_prefix(dut, "s_axil"),
+            clock=dut.clk,
+            reset=dut.rst,
+            reset_active_level=self.rst_active,
+        )
+
         self.clkedge = RisingEdge(self.dut.clk)
         self._log = dut._log
 
@@ -84,14 +100,28 @@ class Testbench:
             self._log.setLevel(logging.DEBUG)
 
         # local copies of parameter values
-        self.addr_width = self.dut.AW
-        self.data_width = self.dut.DW
+        self.addr_width = self.dut.AW.value.to_unsigned()
+        self.data_width = self.dut.DW.value.to_unsigned()
+
+        self._log.info(
+            f"Detected AXI Lite bus with AW={self.addr_width}, DW={self.data_width}"
+        )
+
+        async def _write(addr, data):
+            return await self.bus.write(
+                addr, data.to_bytes(self.data_width // 8, "big")
+            )
+
+        async def _read(addr):
+            return int.from_bytes(
+                await self.bus.read(addr, self.data_width // 8), "big"
+            )
 
         # Register Abstraction Layer - use the same call back for each but are called
         # with different args to indicate read/write
         callbacks = CallbackSet(
-            async_write_callback=self.bus._driver_send,
-            async_read_callback=self.bus._driver_send,
+            async_write_callback=_write,
+            async_read_callback=_read,
         )
         self.RAL = RegModel(rdl_file, callbacks, self._log, debug)
 
@@ -102,15 +132,13 @@ class Testbench:
 
         self._log.debug("Resetting DUT")
 
-        # if reset type is even (0 or 2) then active high
-        active, inactive = (
-            (1, 0) if self.dut.ResetType.value.to_unsigned() % 2 == 0 else (0, 1)
+        self._log.debug(
+            f"Reset values: Active = {self.rst_active}, Inactive = {self.rst_inactive}"
         )
 
-        self._log.debug(f"Reset values: Active = {active}, Inactive = {inactive}")
-
-        await self.clkedge
-        self.dut.rst.value = active
+        self.dut.rst.value = self.rst_active
         for _ in range(10):
             await self.clkedge
-        self.dut.rst.value = inactive
+        self.dut.rst.value = self.rst_inactive
+        for _ in range(10):
+            await self.clkedge
