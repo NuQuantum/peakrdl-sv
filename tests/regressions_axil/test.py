@@ -68,6 +68,7 @@ async def test_bringup(dut):
         await tb.clkedge
 
 
+@cocotb.test(timeout_time=50, timeout_unit="us")
 @cocotb.parametrize(
     target=["r1"]
     + [f"r2_array_{i}" for i in range(4)]

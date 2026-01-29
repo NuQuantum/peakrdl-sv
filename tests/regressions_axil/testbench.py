@@ -4,6 +4,7 @@ import logging
 
 import cocotb
 from cocotb.clock import Clock
+from cocotb.handle import Immediate
 from cocotb.triggers import RisingEdge
 from cocotb_bus.drivers import BusDriver
 
@@ -39,6 +40,10 @@ class CsrDriver(BusDriver):
 
     def __init__(self, dut, clock, name="reg", **kwargs):
         BusDriver.__init__(self, dut, name, clock, **kwargs)
+        self.bus.re.value = 0
+        self.bus.we.value = 0
+        self.bus.addr.value = 0
+        self.bus.wdata.value = 0
 
     # BusDriver classes have a singular _driver_send async method
     async def _driver_send(self, addr: int, wdata: int | None = None) -> int:
@@ -61,22 +66,15 @@ class CsrDriver(BusDriver):
         self.bus.re.value = 0
         self.bus.we.value = 0
 
-        return self.bus.rdata.value.integer
+        return self.bus.rdata.value.to_unsigned()
 
 
 class Testbench:
     def __init__(self, dut, rdl_file: str, debug: bool = False):
         self.dut = dut
 
-        # Initialise the bus to something useful - for now assume that the bus is a CSR
-        # bus
-        dut.clk.setimmediatevalue(0)
-        dut.rst.setimmediatevalue(0)
-        dut.reg_we.setimmediatevalue(0)
-        dut.reg_re.setimmediatevalue(0)
-        dut.reg_addr.setimmediatevalue(0)
-        dut.reg_wdata.setimmediatevalue(0)
-        dut.hw2reg.setimmediatevalue(0)
+        # Initialise hw2reg to zero
+        self.dut.hw2reg.value = 0
 
         self.bus = CsrDriver(self.dut, self.dut.clk)
         self.clkedge = RisingEdge(self.dut.clk)
