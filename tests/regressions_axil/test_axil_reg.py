@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
+from pathlib import Path
 
 import cocotb
+from cocotb_tools.runner import get_runner
 from testbench import Testbench
 
 logger = logging.getLogger(__name__)
 
-# set in the makefile
-try:
-    addr_map = os.environ["ADDR_MAP"]
-except KeyError as e:
-    raise Exception(
-        "You must specify an address map (.rdl) in the coco.tb makefile",
-    ) from e
+proj_path = Path(__file__).resolve().parent
+rtl_dir = proj_path / "rtl"
+addr_map = proj_path / "addrmap.rdl"
 
 
 # set in cmd line
@@ -193,3 +192,50 @@ async def test_wide_narrow_register_read_write(dut):
     # Check that each field match
     for i in range(4):
         await assert_field_match(tb, target, f"f{i + 1}")
+
+
+#
+# Cocotb Runner (pytest)
+#
+def test_simple_dff_runner():
+    # first create files
+    os.environ.update({"ADDR_MAP": str(addr_map)})
+
+    subprocess.run(["uv", "run", "peakrdl", "sv", "-o", rtl_dir, addr_map], check=True)
+    subprocess.run(["uv", "run", "sv-exporter", "-o", rtl_dir, "install"], check=True)
+
+    # start simulation
+    sim = os.getenv("SIM", "icarus")
+
+    sources = [
+        rtl_dir / f
+        for f in [
+            "rdl_subreg_pkg.sv",
+            "rdl_subreg_ext.sv",
+            "rdl_subreg_flop.sv",
+            "rdl_subreg_arb.sv",
+            "rdl_subreg.sv",
+            "test_reg_pkg.sv",
+            "test_reg_top.sv",
+        ]
+    ]
+
+    runner = get_runner(sim)
+    runner.build(
+        sources=sources,
+        hdl_toplevel="test_reg_top",
+        always=True,
+        timescale=("1ns", "1ps"),
+        build_dir=proj_path / "sim_build",
+    )
+
+    runner.test(
+        hdl_toplevel="test_reg_top",
+        test_module=Path(__file__).stem,
+        timescale=("1ns", "1ps"),
+        build_dir=proj_path / "sim_build",
+    )
+
+
+if __name__ == "__main__":
+    test_simple_dff_runner()
