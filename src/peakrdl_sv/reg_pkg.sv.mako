@@ -17,10 +17,10 @@ package ${lname}_reg_pkg;
   // Address width
   parameter int BlockAw = ${block.addrwidth};
 
-
+  %if block.has_reg2hw:
   % for r in registers:
-  ## Only create the reg2hw if we need q, qe or qre signals.
-  % if r.has_hw_readable or r.needs_qe or r.needs_qre:
+  ## Only create the reg2hw struct if the register is present in it.
+  % if r.present_in_reg2hw:
   // ${r.path()}
   typedef struct packed {
   % if len(r) == 1:
@@ -34,7 +34,8 @@ package ${lname}_reg_pkg;
     logic re;
     % endif
   % else:
-    % for f in reversed(r):
+    ## Only create the substruct if the field is present in reg2hw struct
+    % for f in filter(lambda f : f.present_in_reg2hw, reversed(r)):
     struct packed {
       % if f.implements_storage:
       logic ${sv_bitarray(f)}q;
@@ -48,10 +49,11 @@ package ${lname}_reg_pkg;
     } ${f.name.lower()};
     % endfor
   % endif
-  } ${r.owning_addrmap.inst_name.lower()}_reg2hw_${r.path().lower()}_t;
-
+  } ${reg2hw_t_gen(r)};
   % endif
-  % endfor\
+
+  % endfor
+  % endif
 
   % for r in registers:
   // ${r.path()}
@@ -73,7 +75,7 @@ package ${lname}_reg_pkg;
     % endif
   } ${hw2reg_t_gen(r)};
 
-  % endfor
+  % endfor \
 
   ## Only create the reg2hw if there is atleast one register requiring q, qe or qre signals.
   %if block.has_reg2hw:
@@ -83,8 +85,7 @@ package ${lname}_reg_pkg;
   tmp = 0
   nbits = sum([f.get_reg2hw_struct_bits() for r in registers for f in r])
 %>\
-  % for r in registers:
-    % if r.has_hw_readable or r.needs_qe or r.needs_qre:
+  % for r in filter(lambda reg: reg.present_in_reg2hw, registers):
 <%
   reg_bits = sum([f.get_reg2hw_struct_bits() for f in r])
   msb = nbits - tmp - 1
@@ -94,7 +95,6 @@ package ${lname}_reg_pkg;
   lsb = msb + 1
 %>\
     ${reg2hw_t_gen(r)} ${r.path().lower()}; ${comment}
-    % endif
   % endfor
   } ${lname}_reg2hw_t;
   % endif
@@ -107,8 +107,7 @@ package ${lname}_reg_pkg;
   tmp = 0
   nbits = sum([f.get_hw2reg_struct_bits() for r in registers for f in r])
 %>\
-  % for r in registers:
-    % if r.has_hw_writable:
+  % for r in filter(lambda reg: reg.present_in_hw2reg, registers):
 <%
   reg_bits = sum([f.get_hw2reg_struct_bits() for f in r])
   msb = nbits - tmp - 1
@@ -118,7 +117,6 @@ package ${lname}_reg_pkg;
   lsb = msb + 1
 %>\
     ${hw2reg_t_gen(r)} ${r.path().lower()}; ${comment}
-    % endif
   % endfor
   } ${lname}_hw2reg_t;
   % endif
