@@ -106,6 +106,16 @@ class Field(Node):
         )
 
     @property
+    def present_in_reg2hw(self) -> bool:
+        """Return True if the field will be present in the reg2hw struct.
+
+        For a field that is hw = w, sw = r, there is no access of the register from HW
+        and no register is implemented, just a wire. In this case there is no entry in
+        the reg2hw struct for this field.
+        """
+        return self.needs_qe or self.needs_qre or self.implements_storage
+
+    @property
     def absolute_address(self) -> int:
         """Absolute address as base address + parent absolute address."""
         address_base = self.parent.absolute_address
@@ -212,12 +222,12 @@ class Register(Node):
         return self.regwidth > self.accesswidth
 
     @property
-    def is_reg2hw(self) -> bool:
+    def present_in_reg2hw(self) -> bool:
         """Return True if the register will be present in the reg2hw struct."""
         return self.needs_qe or self.needs_qre or self.has_hw_readable
 
     @property
-    def is_hw2reg(self) -> bool:
+    def present_in_hw2reg(self) -> bool:
         """Return True if the register will be present in the hw2reg struct."""
         return self.has_hw_writable
 
@@ -323,12 +333,12 @@ class AddressMap(Node):
     @property
     def has_hw2reg(self) -> bool:
         """Returns True if any register has a hw2reg struct."""
-        return any(reg.is_hw2reg for reg in self.get_registers())
+        return any(reg.present_in_hw2reg for reg in self.get_registers())
 
     @property
     def has_reg2hw(self) -> bool:
         """Returns True if any register has a reg2hw struct."""
-        return any(reg.is_reg2hw for reg in self.get_registers())
+        return any(reg.present_in_reg2hw for reg in self.get_registers())
 
     @property
     def addrwidth(self) -> int:
