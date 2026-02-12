@@ -115,7 +115,7 @@ class RegModel:
     # Utilities
     # --------------------------------------------------------------------------------
 
-    def get_register_by_name(self, reg_name: str) -> Register | None:
+    def get_register_by_name(self, reg_name: str) -> Register:
         """Get a register by its relative path name.
 
         The reg_name must be '.' separated per tier of the hierarchy.
@@ -124,7 +124,7 @@ class RegModel:
           reg_name(str): The register name as a . separated string
 
         Returns:
-          Register | None: The target register, None if the register name is not found
+          Register: The target register
 
         """
         try:
@@ -150,7 +150,7 @@ class RegModel:
                 *self._desired_values.keys(),
                 *self._desired_values[reg_name].keys(),
             )
-            raise KeyError(f"Could not find field in {all_keys}") from e
+            raise KeyError(f"Could not find field {field_name} in {all_keys}") from e
 
     def split_value_over_fields(
         self,
@@ -267,15 +267,15 @@ class RegModel:
             Assumes field width is limited by access width
             """
             # find the field
-            target_field = self.get_field_by_name(target.name, field_name).field
+            target_field = self.get_field_by_name(reg_name, field_name).field
 
             # perform the read
             addr = target_field.absolute_address
-            value = await self._callbacks.async_read_callback(addr)
+            value: int = await self._callbacks.async_read_callback(addr)
 
             # Refer the field to zero and mask out higher bits
-            shamt = target_field.lsb % target.accesswidth
-            mask = (1 << target_field.width) - 1
+            shamt: int = target_field.lsb % target.accesswidth
+            mask: int = (1 << target_field.width) - 1
             return (value >> shamt) & mask
 
         if field_name is None:
