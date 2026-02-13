@@ -1,6 +1,6 @@
 {
   "files.associations": {
-    "*.tpl": "mako"
+    "*.mako": "mako"
   },
   "[systemverilog]": {
     "editor.detectIndentation": false,
@@ -8,10 +8,4 @@
     "editor.tabSize": 2,
 
   },
-  "favorites.resources": [
-    {
-      "filePath": "src/peakrdl_sv/regmodel.py",
-      "group": "Default"
-    }
-  ]
 }

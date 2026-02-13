@@ -72,7 +72,7 @@ def install(args: argparse.Namespace) -> None:
     ]:
         dst = outpath / src.name
         logger.debug(f"copying {src} to {dst}")
-        shutil.copy2(src.name, dst.name)
+        shutil.copy2(str(src), dst.name)
 
 
 def get_parser() -> argparse.ArgumentParser:
