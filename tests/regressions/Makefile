@@ -1,3 +1,5 @@
+CPUIF ?= CSR
+
 MKDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 SIM           ?= verilator
@@ -31,8 +33,9 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 
 rtl:
 	@echo Auto-generating SV output
-	uv run peakrdl sv -o $(RTL_DIR) $(ADDR_MAP)
-	uv run peakrdl-sv -o $(RTL_DIR) install
+	rm -rf $(RTL_DIR)
+	uv run peakrdl sv --cpuif $(CPUIF) -o $(RTL_DIR) $(ADDR_MAP)
+	uv run peakrdl-sv -o $(RTL_DIR) install --cpuif $(CPUIF)
 
 clean::
 	rm -rf $(RTL_DIR)

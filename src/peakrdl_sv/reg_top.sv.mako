@@ -58,11 +58,33 @@ module ${lblock}_reg_top
   input logic rst,
 
   // CPU I/F
+  % if cpuif == "CSR":
   input logic           reg_we,
   input logic           reg_re,
   input logic [AW-1:0]  reg_addr,
   input logic [DW-1:0]  reg_wdata,
   output logic [DW-1:0] reg_rdata,
+  % elif cpuif == "AXIL":
+  output logic                s_axil_awready,
+  input  wire                 s_axil_awvalid,
+  input  wire  [      AW-1:0] s_axil_awaddr,
+  output logic                s_axil_wready,
+  input  wire                 s_axil_wvalid,
+  input  wire  [      DW-1:0] s_axil_wdata,
+  input  wire  [(DW / 8)-1:0] s_axil_wstrb,
+  input  wire                 s_axil_bready,
+  output logic                s_axil_bvalid,
+  output logic [         1:0] s_axil_bresp,
+  output logic                s_axil_arready,
+  input  wire                 s_axil_arvalid,
+  input  wire  [      AW-1:0] s_axil_araddr,
+  input  wire                 s_axil_rready,
+  output logic                s_axil_rvalid,
+  output logic [      DW-1:0] s_axil_rdata,
+  output logic [         1:0] s_axil_rresp,
+  % else:
+  <% raise ValueError(f"Unsupported CPU interface: {cpuif}") %>
+  % endif
 
   // HW I/F
   % if block.has_reg2hw and block.has_hw2reg:
@@ -77,6 +99,52 @@ module ${lblock}_reg_top
   % endif
 );
 
+% if cpuif == "CSR":
+% elif cpuif == "AXIL":
+  // --------------------------------------------------------------------------------
+  // AXIL to CSR Adapter
+  // --------------------------------------------------------------------------------
+  logic                reg_we;
+  logic                reg_re;
+  logic [AW-1:0]       reg_addr;
+  logic [DW-1:0]       reg_wdata;
+  logic [DW-1:0]       reg_rdata;
+
+  rdl_axil_to_csr #(
+    .ResetType (ResetType),
+    .AW        (AW),
+    .DW        (DW)
+  ) rdl_axil_to_csr_i (
+    .clk        (clk),
+    .rst        (rst),
+
+    // AXI Lite slave interface
+    .s_axil_awready (s_axil_awready),
+    .s_axil_awvalid (s_axil_awvalid),
+    .s_axil_awaddr  (s_axil_awaddr),
+    .s_axil_wready  (s_axil_wready),
+    .s_axil_wvalid  (s_axil_wvalid),
+    .s_axil_wdata   (s_axil_wdata),
+    .s_axil_wstrb   (s_axil_wstrb),
+    .s_axil_bready  (s_axil_bready),
+    .s_axil_bvalid  (s_axil_bvalid),
+    .s_axil_bresp   (s_axil_bresp),
+    .s_axil_arready (s_axil_arready),
+    .s_axil_arvalid (s_axil_arvalid),
+    .s_axil_araddr  (s_axil_araddr),
+    .s_axil_rready  (s_axil_rready),
+    .s_axil_rvalid  (s_axil_rvalid),
+    .s_axil_rdata   (s_axil_rdata),
+    .s_axil_rresp   (s_axil_rresp),
+
+    // Register I/F
+    .reg_we     (reg_we),
+    .reg_re     (reg_re),
+    .reg_addr   (reg_addr),
+    .reg_wdata  (reg_wdata),
+    .reg_rdata  (reg_rdata)
+  );
+% endif
   // --------------------------------------------------------------------------------
   // Software Logic Declarations
   // --------------------------------------------------------------------------------
