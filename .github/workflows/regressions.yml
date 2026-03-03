@@ -49,8 +49,14 @@ jobs:
       - name: Install Python package
         run: uv sync --extra dev
 
-      - name: Run cocotb tests
+      - name: Run cocotb tests (CSR)
         run: |
           cd tests/regressions
           make rtl
           make test
+
+      - name: Run cocotb tests (AXI Lite)
+        run: |
+          cd tests/regressions
+          make rtl CPUIF=axi-lite
+          make test CPUIF=axi-lite

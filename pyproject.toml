@@ -33,6 +33,7 @@ dev = [
     "numpy",
     "cocotb==1.9.1",
     "cocotb-bus==0.2.1",
+    "cocotbext-axi>=0.1.26",
     "pytest",
     "mypy",
     "ruff"

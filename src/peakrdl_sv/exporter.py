@@ -56,17 +56,22 @@ class VerilogExporterBase:
         reg_pkg_path = outpath / f"{node.inst_name.lower()}_reg_pkg.sv"
         reg_top_path = outpath / f"{node.inst_name.lower()}_reg_top.sv"
 
+        args = {
+            "block": self.listener.top_node,
+            "options": options,
+        }
+
         reg_top_tpl = Template(
             text=files("peakrdl_sv").joinpath("reg_top.sv.mako").read_text(),
         )
         with reg_top_path.open("w") as f:
-            f.write(reg_top_tpl.render(block=self.listener.top_node))
+            f.write(reg_top_tpl.render(**args))
 
         reg_pkg_tpl = Template(
             text=files("peakrdl_sv").joinpath("reg_pkg.sv.mako").read_text(),
         )
         with reg_pkg_path.open("w") as f:
-            f.write(reg_pkg_tpl.render(block=self.listener.top_node))
+            f.write(reg_pkg_tpl.render(**args))
 
 
 class PythonExporterBase:

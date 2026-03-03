@@ -59,11 +59,33 @@ module ${lblock}_reg_top
   input logic rst,
 
   // CPU I/F
+  % if options.cpuif == "csr":
   input logic           reg_we,
   input logic           reg_re,
   input logic [AW-1:0]  reg_addr,
   input logic [DW-1:0]  reg_wdata,
   output logic [DW-1:0] reg_rdata,
+  % elif options.cpuif == "axi-lite":
+  output logic                s_axil_awready,
+  input  wire                 s_axil_awvalid,
+  input  wire  [      AW-1:0] s_axil_awaddr,
+  output logic                s_axil_wready,
+  input  wire                 s_axil_wvalid,
+  input  wire  [      DW-1:0] s_axil_wdata,
+  input  wire  [(DW / 8)-1:0] s_axil_wstrb,
+  input  wire                 s_axil_bready,
+  output logic                s_axil_bvalid,
+  output logic [         1:0] s_axil_bresp,
+  output logic                s_axil_arready,
+  input  wire                 s_axil_arvalid,
+  input  wire  [      AW-1:0] s_axil_araddr,
+  input  wire                 s_axil_rready,
+  output logic                s_axil_rvalid,
+  output logic [      DW-1:0] s_axil_rdata,
+  output logic [         1:0] s_axil_rresp,
+  % else:
+  <% raise ValueError(f"Unsupported CPU interface: {options.cpuif}") %>
+  % endif
 
   // HW I/F
   % if block.has_reg2hw and block.has_hw2reg:
@@ -77,6 +99,58 @@ module ${lblock}_reg_top
   // This register block has no read/write interface
   % endif
 );
+
+  // --------------------------------------------------------------------------------
+  // CPU Interface
+  // --------------------------------------------------------------------------------
+
+% if options.cpuif == "csr":
+  wire [AW-1:0] reg_waddr = reg_addr;
+  wire [AW-1:0] reg_raddr = reg_addr;
+% elif options.cpuif == "axi-lite":
+  logic                reg_we;
+  logic                reg_re;
+  logic [AW-1:0]       reg_waddr;
+  logic [AW-1:0]       reg_raddr;
+  logic [DW-1:0]       reg_wdata;
+  logic [DW-1:0]       reg_rdata;
+
+  rdl_axil_to_reg #(
+    .ResetType (ResetType),
+    .AW        (AW),
+    .DW        (DW)
+  ) rdl_axil_to_reg_i (
+    .clk        (clk),
+    .rst        (rst),
+
+    // AXI Lite slave interface
+    .s_axil_awready (s_axil_awready),
+    .s_axil_awvalid (s_axil_awvalid),
+    .s_axil_awaddr  (s_axil_awaddr),
+    .s_axil_wready  (s_axil_wready),
+    .s_axil_wvalid  (s_axil_wvalid),
+    .s_axil_wdata   (s_axil_wdata),
+    .s_axil_wstrb   (s_axil_wstrb),
+    .s_axil_bready  (s_axil_bready),
+    .s_axil_bvalid  (s_axil_bvalid),
+    .s_axil_bresp   (s_axil_bresp),
+    .s_axil_arready (s_axil_arready),
+    .s_axil_arvalid (s_axil_arvalid),
+    .s_axil_araddr  (s_axil_araddr),
+    .s_axil_rready  (s_axil_rready),
+    .s_axil_rvalid  (s_axil_rvalid),
+    .s_axil_rdata   (s_axil_rdata),
+    .s_axil_rresp   (s_axil_rresp),
+
+    // Register I/F
+    .reg_we     (reg_we),
+    .reg_re     (reg_re),
+    .reg_waddr  (reg_waddr),
+    .reg_raddr  (reg_raddr),
+    .reg_wdata  (reg_wdata),
+    .reg_rdata  (reg_rdata)
+  );
+% endif
 
   // --------------------------------------------------------------------------------
   // Software Logic Declarations
@@ -185,12 +259,12 @@ module ${lblock}_reg_top
   % endfor
 
   // --------------------------------------------------------------------------------
-  // Address Decode
+  // Address Decode Write
   // --------------------------------------------------------------------------------
 
-  logic [${num_regs-1}:0] addr_hit;
+  logic [${num_regs-1}:0] w_addr_hit;
   always_comb begin
-    addr_hit = '0;
+    w_addr_hit = '0;
     % for i,r in enumerate(registers):
 <%
     write_enables = reg_enables[r.path().lower()]['we']
@@ -201,7 +275,29 @@ module ${lblock}_reg_top
     justified = "{}".format(base_idx+i).rjust(max_regs_char)
     param = f"{ublock}_{r.path().upper()}_" + (f"{i}_" if r.is_wide else "") + "OFFSET"
 %>\
-    addr_hit[${justified}] = (reg_addr == ${param});
+    w_addr_hit[${justified}] = (reg_waddr == ${param});
+    % endfor
+    % endfor
+  end
+
+  // --------------------------------------------------------------------------------
+  // Address Decode Read
+  // --------------------------------------------------------------------------------
+
+  logic [${num_regs-1}:0] r_addr_hit;
+  always_comb begin
+    r_addr_hit = '0;
+    % for i,r in enumerate(registers):
+<%
+    write_enables = reg_enables[r.path().lower()]['we']
+    base_idx = reg_enables[r.path().lower()]['idx']
+%>\
+    % for i in range(r.subregs):
+<%
+    justified = "{}".format(base_idx+i).rjust(max_regs_char)
+    param = f"{ublock}_{r.path().upper()}_" + (f"{i}_" if r.is_wide else "") + "OFFSET"
+%>\
+    r_addr_hit[${justified}] = (reg_raddr == ${param});
     % endfor
     % endfor
   end
@@ -239,14 +335,14 @@ ${field_wd_gen(f)}\
 %>\
     % if r.is_wide:
       % for i in range(r.subregs):
-      addr_hit[${idx+i}]: begin
+      r_addr_hit[${idx+i}]: begin
         % for f in r.get_subreg_fields(i):
 ${rdata_gen(f)}\
         % endfor
       end
       % endfor
     % else:
-      addr_hit[${idx}]: begin
+      r_addr_hit[${idx}]: begin
       % for f in r:
 ${rdata_gen(f)}\
       % endfor
@@ -266,7 +362,7 @@ endmodule
   idx           = reg_enables[reg.path().lower()]['idx']
 %>\
   % for i,enable in enumerate(write_enables):
-  assign ${enable} = addr_hit[${idx+i}] && reg_we;
+  assign ${enable} = w_addr_hit[${idx+i}] && reg_we;
   % endfor
 </%def>\
 <%def name="register_re_gen(reg, idx)">\
@@ -275,7 +371,7 @@ endmodule
   idx           = reg_enables[reg.path().lower()]['idx']
 %>\
   % for i,enable in enumerate(read_enables):
-  assign ${enable} = addr_hit[${idx+i}] && reg_re;
+  assign ${enable} = r_addr_hit[${idx+i}] && reg_re;
   % endfor
 </%def>\
 <%def name="field_wd_gen(field)">\
