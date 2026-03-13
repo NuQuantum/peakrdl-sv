@@ -39,7 +39,7 @@ dev = [
 ]
 
 [project.scripts]
-sv-exporter = "peakrdl_sv.main:main"
+peakrdl-sv = "peakrdl_sv.main:main"
 
 [project.entry-points."peakrdl.exporters"]
 sv = "peakrdl_sv.__peakrdl__:VerilogExporter"

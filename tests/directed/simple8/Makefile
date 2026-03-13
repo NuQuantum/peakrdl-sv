@@ -2,7 +2,7 @@ all: sv lint
 
 sv:
 	uv run peakrdl sv -o rtl simple8.rdl
-	uv run sv-exporter -o rtl install
+	uv run peakrdl-sv -o rtl install
 
 python:
 	uv run peakrdl py -o python simple8.rdl
