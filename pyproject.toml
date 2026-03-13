@@ -60,7 +60,6 @@ line-length = 88
 target-version = "py310" # Match minimum requires-python version
 fix = true
 unsafe-fixes = true
-exclude = ["tests/"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -101,4 +100,12 @@ ignore = [
     "D213", # D212 and D213 are incompatible. Pick D212
 ]
 
+flake8-annotations.allow-star-arg-any = true
+
 [tool.ruff.lint.per-file-ignores]
+"tests/*" = [  # tests don't need doc strings like public APIs do
+    "D100",
+    "D101",
+    "D102",  # docstring in public method
+    "D107",
+]

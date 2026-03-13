@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, ClassVar, TypeVar
 
 import cocotb
 from cocotb.clock import Clock
+from cocotb.handle import SimHandleBase
 from cocotb.triggers import RisingEdge
 from cocotb_bus.drivers import BusDriver
 
@@ -13,8 +15,10 @@ from peakrdl_sv.regmodel import RegModel
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+TSimHandleBase = TypeVar("TSimHandleBase", bound=SimHandleBase)
 
-# TODO: Updgrade to a Transaction Class - currently not supported by the RegModel
+
+# TODO: Upgrade to a Transaction Class - currently not supported by the RegModel
 class CsrTransaction:
     def __init__(self, addr: int, wdata=None) -> None:
         self.addr = addr
@@ -22,7 +26,7 @@ class CsrTransaction:
         self.rdata = 0
 
     @property
-    def is_write(self):
+    def is_write(self) -> bool:
         return self.wdata is not None
 
     @property
@@ -35,9 +39,15 @@ class CsrTransaction:
 
 
 class CsrDriver(BusDriver):
-    _signals = ["re", "we", "addr", "rdata", "wdata"]
+    _signals: ClassVar[list[str]] = ["re", "we", "addr", "rdata", "wdata"]
 
-    def __init__(self, dut, clock, name="reg", **kwargs) -> None:
+    def __init__(
+        self,
+        dut: TSimHandleBase,
+        clock: TSimHandleBase,
+        name: str = "reg",
+        **kwargs: Any,
+    ) -> None:
         BusDriver.__init__(self, dut, name, clock, **kwargs)
 
     # BusDriver classes have a singular _driver_send async method
@@ -65,7 +75,7 @@ class CsrDriver(BusDriver):
 
 
 class Testbench:
-    def __init__(self, dut, rdl_file: str, debug: bool = False) -> None:
+    def __init__(self, dut: TSimHandleBase, rdl_file: str, debug: bool = False) -> None:
         self.dut = dut
 
         # Initialise the bus to something useful - for now assume that the bus is a CSR
