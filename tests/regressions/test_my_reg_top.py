@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import TypeVar
 
 import cocotb
+from cocotb.handle import SimHandleBase
 from cocotb.regression import TestFactory
 from testbench import Testbench
 
@@ -25,8 +27,7 @@ except KeyError:
 
 
 async def assert_register_match(tb: Testbench, register: str) -> None:
-    """Reads the value of a register by name from the device under test and asserts
-    that its value is equal to the locally stored expected value.
+    """Read register by name from DUT, assert it is equal to local expected value.
 
     :param tb: A handle to the testbench (to provide RAL access)
     :type tb: Testbench
@@ -38,8 +39,7 @@ async def assert_register_match(tb: Testbench, register: str) -> None:
 
 
 async def assert_field_match(tb: Testbench, register: str, field: str) -> None:
-    """Reads the value of a register's field by name from the device under test and
-    asserts that its value is equal to the locally stored expected value.
+    """Read a register's field by name from DUT, assert its value is as expected.
 
     :param tb: A handle to the testbench (to provide RAL access)
     :type tb: Testbench
@@ -49,13 +49,12 @@ async def assert_field_match(tb: Testbench, register: str, field: str) -> None:
     :type field: str
     """
     actual = await tb.RAL.read(register, field)
-    assert tb.RAL.get_field(register, field) == actual, (
-        f"Expected does not equal actual ({actual})"
-    )
+    expected = tb.RAL.get_field(register, field)
+    assert expected == actual, f"Expected does not equal actual ({actual})"
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_bringup(dut) -> None:
+async def test_bringup(dut: TSimHandleBase) -> None:
     """Bringup."""
     tb = Testbench(dut, addr_map, debug)
 
@@ -68,7 +67,7 @@ async def test_bringup(dut) -> None:
 
 
 @cocotb.coroutine
-async def test_register_read_write(dut, target) -> None:
+async def test_register_read_write(dut: TSimHandleBase, target: str) -> None:
     """Writes to a register and reads back the value."""
     tb = Testbench(dut, addr_map, debug)
 
@@ -90,9 +89,11 @@ factory.add_option(
 )
 factory.generate_tests()
 
+TSimHandleBase = TypeVar("TSimHandleBase", bound=SimHandleBase)
+
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_register_array_read_write(dut) -> None:
+async def test_register_array_read_write(dut: TSimHandleBase) -> None:
     """Writes to a register and reads back the value."""
     tb = Testbench(dut, addr_map)
 
@@ -111,7 +112,7 @@ async def test_register_array_read_write(dut) -> None:
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_field_read_write(dut) -> None:
+async def test_field_read_write(dut: TSimHandleBase) -> None:
     """Writes to a field and reads back the value."""
     tb = Testbench(dut, addr_map, debug)
 
@@ -143,7 +144,7 @@ async def test_field_read_write(dut) -> None:
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_wide_register_read_write(dut) -> None:
+async def test_wide_register_read_write(dut: TSimHandleBase) -> None:
     """Writes to a wide register and reads back the value."""
     tb = Testbench(dut, addr_map, debug)
 
@@ -172,8 +173,10 @@ async def test_wide_register_read_write(dut) -> None:
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
-async def test_wide_narrow_register_read_write(dut) -> None:
-    """Writes to the fields of a register which is wide (> accesswidth) but has fields
+async def test_wide_narrow_register_read_write(dut: TSimHandleBase) -> None:
+    """Test read/write to a wide register with narrow fields.
+
+    Write to fields of a register which is wide (> accesswidth) but has fields
     which are smaller than the accesswidth.
     """
     tb = Testbench(dut, addr_map, debug)

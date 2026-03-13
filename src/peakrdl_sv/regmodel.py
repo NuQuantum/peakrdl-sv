@@ -184,7 +184,7 @@ class RegModel:
         self,
         reg_name: str,
         data: int | None = None,
-        **kwargs: Any,  # noqa: ANN401
+        **kwargs: Any,
     ) -> None:
         """Write the value of the DUT register.
 
