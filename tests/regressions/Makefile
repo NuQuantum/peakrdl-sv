@@ -9,7 +9,7 @@ RTL_PKG_FILES = $(wildcard $(RTL_DIR)/*_pkg.sv)
 RTL_SRC_FILES = $(filter-out $(RTL_PKG_FILES), $(wildcard $(RTL_DIR)/*.sv))
 
 TOPLEVEL := test_reg_top
-MODULE   := test
+MODULE   := test_my_reg_top
 
 CUSTOM_COMPILE_DEPS = rtl
 VERILOG_SOURCES     = $(RTL_PKG_FILES) $(RTL_SRC_FILES)
