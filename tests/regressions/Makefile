@@ -27,10 +27,12 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 
 .PHONY: rtl test clean
 
+.PHONY: rtl test clean
+
 rtl:
 	@echo Auto-generating SV output
 	uv run peakrdl sv -o $(RTL_DIR) $(ADDR_MAP)
-	uv run sv-exporter -o $(RTL_DIR) install
+	uv run peakrdl-sv -o $(RTL_DIR) install
 
 clean::
 	rm -rf $(RTL_DIR)

@@ -27,8 +27,8 @@ targets.  The latter will install the required RTL dependencies to a local direc
 This can also be done at the `export` stage by passing the `--include-subreg` argument.
 
 ```
-$ sv-exporter -h
-usage: sv-exporter [-h] [-v] [-o OUTPUT] {export,install} ...
+$ peakrdl-sv -h
+usage: peakrdl-sv [-h] [-v] [-o OUTPUT] {export,install} ...
 
 positional arguments:
   {export,install}
@@ -41,9 +41,9 @@ options:
   -o OUTPUT, --output OUTPUT
                         Specify the output path
 
-$ sv-exporter -o ./rtl install
-$ sv-exporter -0 ./rtl export <filename>.rdl
-$ sv-exporter -0 ./rtl export --include-subreg <filename>.rdl
+$ peakrdl-sv -o ./rtl install
+$ peakrdl-sv -0 ./rtl export <filename>.rdl
+$ peakrdl-sv -0 ./rtl export --include-subreg <filename>.rdl
 ```
 
 ## Contributing
