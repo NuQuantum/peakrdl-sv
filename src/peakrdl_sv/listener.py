@@ -41,7 +41,7 @@ class Listener(RDLListener):
         """Set the `top_node` member to the head of the stack."""
         self.top_node = self._active_node.pop()
 
-    def enter_Addrmap(self, node: AddrmapNode) -> None:
+    def enter_Addrmap(self, node: AddrmapNode) -> None:  # noqa: N802
         """Create an address map on the stack with the provided root Node.
 
         Args:
@@ -50,7 +50,7 @@ class Listener(RDLListener):
         """
         self.push(AddressMap(node, None))
 
-    def exit_Addrmap(self, _: AddrmapNode) -> None:
+    def exit_Addrmap(self, _: AddrmapNode) -> None:  # noqa: N802
         """Alias for pop().
 
         Args:
@@ -59,7 +59,7 @@ class Listener(RDLListener):
         """
         self.pop()
 
-    def enter_Regfile(self, node: RegfileNode) -> None:
+    def enter_Regfile(self, node: RegfileNode) -> None:  # noqa: N802 # overriding super def
         """Create a RegisterFile on the stack with the provided RegFileNode.
 
         Args:
@@ -68,7 +68,7 @@ class Listener(RDLListener):
         """
         self.push(RegisterFile(node, self._current_node))
 
-    def exit_Regfile(self, node: RegfileNode) -> None:
+    def exit_Regfile(self, node: RegfileNode) -> None:  # noqa: ARG002,N802 # overriding super def
         """Alias for pop().
 
         Args:
@@ -77,7 +77,7 @@ class Listener(RDLListener):
         """
         self.pop()
 
-    def enter_Reg(self, node: RegNode) -> None:
+    def enter_Reg(self, node: RegNode) -> None:  # noqa: N802 # overriding super def
         """Create a Register on the stack from the provided RegNode.
 
         Args:
@@ -86,7 +86,7 @@ class Listener(RDLListener):
         """
         self.push(Register(node, self._current_node))
 
-    def exit_Reg(self, node: RegNode) -> None:
+    def exit_Reg(self, node: RegNode) -> None:  # noqa: ARG002,N802 # overriding super def
         """Alias for pop().
 
         Args:
@@ -95,7 +95,7 @@ class Listener(RDLListener):
         """
         self.pop()
 
-    def enter_Field(self, node: FieldNode) -> None:
+    def enter_Field(self, node: FieldNode) -> None:  # noqa: N802 # overriding super def
         """Create a Field on the stack from the provided RegNode.
 
         Args:
@@ -104,7 +104,7 @@ class Listener(RDLListener):
         """
         self.push(Field(node, self._current_node))
 
-    def exit_Field(self, node: FieldNode) -> None:
+    def exit_Field(self, node: FieldNode) -> None:  # noqa: ARG002,N802 # overriding super def
         """Alias for pop().
 
         Args:

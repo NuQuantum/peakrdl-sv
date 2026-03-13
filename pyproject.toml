@@ -102,7 +102,3 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/peakrdl_sv/listener.py" = [
-    "N802", # Function name should be lowercase (implements base class functions)
-    "ARG002", # Unused function arguments
-]
