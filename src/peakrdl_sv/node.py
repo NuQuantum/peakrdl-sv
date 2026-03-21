@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Generator
 from typing import Generic, TypeVar, Union
 
 from systemrdl.node import AddrmapNode, FieldNode, RegfileNode, RegNode, SignalNode
@@ -46,7 +46,7 @@ class NodeWrapper(Generic[TParent, TInner, TChild]):
         self.children = []
         super().__init__()
 
-    def __iter__(self) -> Iterable[TChild]:
+    def __iter__(self) -> Generator[TChild]:
         """Iterate over the node's children."""
         yield from self.children
 
@@ -216,12 +216,12 @@ class Register(NodeWrapper[Union["AddressMap", "RegisterFile"], RegNode, Field])
     @property
     def needs_qe(self) -> bool:
         """Whether the register needs a qe signal."""
-        return any(f.needs_qe for f in self.children)
+        return any(f.needs_qe for f in self)
 
     @property
     def needs_qre(self) -> bool:
         """Whether the register needs a qre signal."""
-        return any(f.needs_qre for f in self.children)
+        return any(f.needs_qre for f in self)
 
     @property
     def accesswidth(self) -> int:
@@ -294,7 +294,7 @@ class Register(NodeWrapper[Union["AddressMap", "RegisterFile"], RegNode, Field])
             list[Field] The list of fields
 
         """
-        return [f for f in self.children if (f.inner.msb // self.accesswidth) == subreg]
+        return [f for f in self if (f.inner.msb // self.accesswidth) == subreg]
 
 
 class RegisterFile(
