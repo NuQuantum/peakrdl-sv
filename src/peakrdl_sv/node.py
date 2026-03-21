@@ -306,7 +306,7 @@ class RegisterFile(
 
 
 class AddressMap(
-    NodeWrapper[None, AddrmapNode, Union["AddressMap", Register, Field, RegisterFile]]
+    NodeWrapper[None, AddrmapNode, Union["AddressMap", Register, RegisterFile]]
 ):
     """Represents an address map."""
 
@@ -330,12 +330,12 @@ class AddressMap(
         """
 
         def get_child_regs(
-            child: AddressMap | Field | RegisterFile | Register, regs: list[Register]
+            child: AddressMap | RegisterFile | Register, regs: list[Register]
         ) -> None:
             """Get all child registers of a RegisterFile.
 
             Args:
-              child: The RegisterFile to inspect
+              child: The node to inspect
               regs: the running list of registers
 
             Returns:
@@ -343,17 +343,14 @@ class AddressMap(
 
             """
             match child:
-                case AddressMap() | Field():
-                    raise RuntimeError(
-                        f"unexpected call to get_child_regs on object {child}",
-                    )
-                case RegisterFile():
+                # recurse nested addrmaps / regiles
+                case AddressMap() | RegisterFile():
                     for c in child.children:
                         get_child_regs(c, regs)
                 case Register():
                     regs.append(child)
                 case _:
-                    raise RuntimeError(f"unrecognised type: {type(child)}")
+                    raise RuntimeError(f"Unexpected type: {type(child)}")
 
         registers: list[Register] = []
         for child in self.children:
