@@ -35,6 +35,7 @@ dev = [
     "cocotb-bus==0.2.1",
     "pytest",
     "mypy",
+    "ruff"
 ]
 
 [project.scripts]

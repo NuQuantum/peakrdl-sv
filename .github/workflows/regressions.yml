@@ -1,0 +1,51 @@
+name: cocotb regressions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  cocotb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Verilator build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git autoconf flex bison help2man perl python3 libfl-dev
+
+      - name: Get Verilator stable commit SHA
+        id: verilator-sha
+        run: |
+          SHA=$(git ls-remote https://github.com/verilator/verilator.git refs/heads/stable | cut -f1)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Cache Verilator build
+        id: verilator-cache
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/verilator*
+          key: verilator-${{ steps.verilator-sha.outputs.sha }}
+
+      - name: Build and install Verilator from source
+        if: steps.verilator-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/verilator/verilator.git
+          cd verilator
+          git checkout stable
+          autoconf
+          ./configure
+          make -j$(nproc)
+          sudo make install
+
+      - name: Install Python package
+        run: uv sync --extra dev
+
+      - name: Run cocotb tests
+        run: cd tests/regressions && make
