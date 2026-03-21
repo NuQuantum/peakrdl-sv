@@ -7,3 +7,4 @@ results.xml
 tests/**/rtl
 tests/**/sim_build
 tests/**/python
+tests/**/rdl_*.sv

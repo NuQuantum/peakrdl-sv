@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 from typing import TypeAlias
 
-from systemrdl.node import AddrmapNode, FieldNode, RegfileNode, RegNode, RootNode
+from systemrdl.node import AddrmapNode, FieldNode, RegfileNode, RegNode
 from systemrdl.walker import RDLListener, RDLWalker
 
 from peakrdl_sv.node import AddressMap, Field, Register, RegisterFile
@@ -113,14 +113,12 @@ class Listener(RDLListener):
         """
         self.pop()
 
-    def walk(self, node: RootNode | AddrmapNode, unroll: bool = True) -> None:
+    def walk(self, node: AddrmapNode, unroll: bool = True) -> None:
         """Walk the address map from a provided RootNode or AddmapNode.
 
         Args:
-          node: RootNode | AddrmapNode: The root node to walk from
+          node: AddrmapNode: The root node to walk from
           unroll (bool): If true unroll RDLWalker (Default value = True).
 
         """
-        if isinstance(node, RootNode):
-            node = node.top
         RDLWalker(unroll=unroll).walk(node, self)

@@ -20,7 +20,7 @@ class VerilogExporterBase:
         """Initialise the exporter with a listener."""
         self.listener = Listener()
 
-    def walk(self, node: RootNode | AddrmapNode) -> None:
+    def walk(self, node: AddrmapNode | RootNode) -> None:
         """Walk an addr map from a root node.
 
         Args:
@@ -31,7 +31,7 @@ class VerilogExporterBase:
 
     def export(
         self,
-        node: RootNode | AddrmapNode | None,
+        node: AddrmapNode | RootNode | None,
         options: argparse.Namespace,
     ) -> None:
         """Export a register map to (System)Verilog.
@@ -41,10 +41,13 @@ class VerilogExporterBase:
           options: argparse.Namespace: the output path
 
         """
-        if node is not None:
-            self.walk(node)
-        else:
+        if node is None:
             raise RuntimeError("Root node must not be None")
+
+        if isinstance(node, RootNode):
+            node = node.top
+
+        self.walk(node)
 
         outpath = Path(options.output)
         if not outpath.exists():
