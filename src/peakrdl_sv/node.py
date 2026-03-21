@@ -3,27 +3,39 @@
 
 from __future__ import annotations
 
-from collections import UserList
-from typing import Any
+from collections.abc import Iterable
+from typing import Generic, TypeVar, Union
 
 from systemrdl.node import AddrmapNode, FieldNode, RegfileNode, RegNode, SignalNode
-from systemrdl.rdltypes import PropertyReference
 from systemrdl.rdltypes.builtin_enums import OnReadType, OnWriteType
+from systemrdl.rdltypes.references import PropertyReference
+
+TParent = TypeVar(
+    "TParent", bound=Union["AddressMap", "Register", "RegisterFile", None]
+)
+TInner = TypeVar("TInner", AddrmapNode, FieldNode, RegfileNode, RegNode)
+TChild = TypeVar(
+    "TChild", bound=Union["AddressMap", "Register", "RegisterFile", "Field", None]
+)
 
 
-class Node(UserList):
-    """A generic node object.
+class NodeWrapper(Generic[TParent, TInner, TChild]):
+    """Wraps a SystemRDL node, pairing it with its parent and child nodes.
 
-    Wraps a SystemRDL node, providing passthrough access to properties of the node.
+    This class is parameterised
     """
+
+    parent: TParent
+    inner: TInner
+    children: list[TChild]
 
     def __init__(
         self,
-        node: AddrmapNode | RegfileNode | RegNode | FieldNode,
-        parent: AddressMap | RegisterFile | Register | None,
+        node: TInner,
+        parent: TParent,
     ) -> None:
         """Initialise node and parent."""
-        self.node = node
+        self.inner = node
         if parent is None:
             assert isinstance(
                 node,
@@ -31,21 +43,28 @@ class Node(UserList):
             ), f"Root node must be of type AddrmapNode, not {type(node)}"
         else:
             self.parent = parent
+        self.children = []
         super().__init__()
 
-    def __getattr__(self, item: str) -> Any:  # noqa: ANN401
-        """Get attributes from the internal node (which aren't provided below)."""
-        return getattr(self.node, item)
+    def __iter__(self) -> Iterable[TChild]:
+        """Iterate over the node's children."""
+        yield from self.children
 
     @property
     def name(self) -> str:
         """The node's instance name."""
-        return self.node.inst_name
+        return self.inner.inst_name
 
     @property
     def size(self) -> int:
         """The node's size in bytes."""
-        return self.node.size
+        match self.inner:
+            case AddrmapNode() | RegfileNode() | RegNode():
+                return self.inner.size
+            case FieldNode():
+                raise AttributeError("Cannot query the size of a field node")
+            case _:
+                raise TypeError("Unknown node type")
 
     def path(self, hier_separator: str = "_", array_suffix: str = "_{index:d}") -> str:
         """Generate a relative path string to internal node wrt to owning addr map.
@@ -58,50 +77,56 @@ class Node(UserList):
             str: The path
 
         """
-        return self.get_rel_path(
-            self.owning_addrmap,
+        owning_addrmap = self.inner.owning_addrmap
+        if owning_addrmap is None:
+            raise RuntimeError(
+                f"Node {self} does not have an owning addrmap (this is the root node)"
+            )
+
+        return self.inner.get_rel_path(
+            owning_addrmap,
             hier_separator=hier_separator,
             array_suffix=array_suffix,
         )
 
 
-class Field(Node):
+class Field(NodeWrapper["Register", FieldNode, None]):
     """A generic Field Node."""
 
     @property
     def onread(self) -> OnReadType | None:
         """Get onread propoert."""
-        return self.get_property("onread")
+        return self.inner.get_property("onread")
 
     @property
     def onwrite(self) -> OnWriteType | None:
         """Get onwite propoerty."""
-        return self.get_property("onwrite")
+        return self.inner.get_property("onwrite")
 
     @property
-    def reset(self) -> int | FieldNode | SignalNode | PropertyReference:
+    def reset(self) -> int | FieldNode | SignalNode | PropertyReference | None:
         """Get reset propoerty."""
-        return self.get_property("reset")
+        return self.inner.get_property("reset")
 
     @property
     def swmod(self) -> bool:
         """Get swmod propoerty."""
-        return self.get_property("swmod")
+        return self.inner.get_property("swmod")
 
     @property
     def swacc(self) -> bool:
         """Get swacc propoerty."""
-        return self.get_property("swacc")
+        return self.inner.get_property("swacc")
 
     @property
     def needs_qe(self) -> bool:
         """Returns True if hardware needs to be notified of a SW write."""
-        return self.is_sw_writable and (self.swacc or self.swmod)
+        return self.inner.is_sw_writable and (self.swacc or self.swmod)
 
     @property
     def needs_qre(self) -> bool:
         """Returns True if hardware needs to be notified of a SW read."""
-        return self.is_sw_readable and (
+        return self.inner.is_sw_readable and (
             self.swacc or (self.swmod and self.onread is not None)
         )
 
@@ -113,15 +138,15 @@ class Field(Node):
         and no register is implemented, just a wire. In this case there is no entry in
         the reg2hw struct for this field.
         """
-        return self.needs_qe or self.needs_qre or self.implements_storage
+        return self.needs_qe or self.needs_qre or self.inner.implements_storage
 
     @property
     def absolute_address(self) -> int:
         """Absolute address as base address + parent absolute address."""
-        address_base = self.parent.absolute_address
+        address_base = self.parent.inner.absolute_address
         if not self.parent.is_wide:
             return address_base
-        return address_base + (self.msb // 8)
+        return address_base + (self.inner.msb // 8)
 
     def get_bit_slice(self) -> str:
         """Return a bit slice defining the width of the field.
@@ -130,10 +155,10 @@ class Field(Node):
             str: The bitslice string
 
         """
-        if self.msb == self.lsb:
-            return f"{self.msb}"
+        if self.inner.msb == self.inner.lsb:
+            return f"{self.inner.msb}"
         else:
-            return f"{self.msb}:{self.lsb}"
+            return f"{self.inner.msb}:{self.inner.lsb}"
 
     def get_cpuif_bit_slice(self) -> str:
         """Return the bit slice used by SW to access the field.
@@ -145,10 +170,10 @@ class Field(Node):
             str: The bitslice string
 
         """
-        accesswidth = self.parent.get_property("accesswidth")
-        subreg_idx = self.msb // accesswidth
-        msb = self.msb - (subreg_idx * accesswidth)
-        lsb = self.lsb - (subreg_idx * accesswidth)
+        accesswidth = self.parent.inner.get_property("accesswidth")
+        subreg_idx = self.inner.msb // accesswidth
+        msb = self.inner.msb - (subreg_idx * accesswidth)
+        lsb = self.inner.lsb - (subreg_idx * accesswidth)
         if msb == lsb:
             return f"{msb}"
         else:
@@ -164,7 +189,7 @@ class Field(Node):
             int: The number of bits
 
         """
-        bits = self.width if self.implements_storage else 0
+        bits = self.inner.width if self.inner.implements_storage else 0
         return bits + int(self.needs_qe) + int(self.needs_qre)
 
     def get_hw2reg_struct_bits(self) -> int:
@@ -180,33 +205,33 @@ class Field(Node):
             int: The number of bits
 
         """
-        if not self.is_hw_writable:
+        if not self.inner.is_hw_writable:
             return 0
-        return self.width + int(not self.external)
+        return self.inner.width + int(not self.inner.external)
 
 
-class Register(Node):
+class Register(NodeWrapper[Union["AddressMap", "RegisterFile"], RegNode, Field]):
     """A generic Register node."""
 
     @property
     def needs_qe(self) -> bool:
         """Whether the register needs a qe signal."""
-        return any(f.needs_qe for f in self)
+        return any(f.needs_qe for f in self.children)
 
     @property
     def needs_qre(self) -> bool:
         """Whether the register needs a qre signal."""
-        return any(f.needs_qre for f in self)
+        return any(f.needs_qre for f in self.children)
 
     @property
     def accesswidth(self) -> int:
         """Returns the SW access width in bits."""
-        return self.get_property("accesswidth")
+        return self.inner.get_property("accesswidth")
 
     @property
     def regwidth(self) -> int:
         """Returns the width of the register in bits."""
-        return self.get_property("regwidth")
+        return self.inner.get_property("regwidth")
 
     @property
     def is_wide(self) -> bool:
@@ -224,12 +249,12 @@ class Register(Node):
     @property
     def present_in_reg2hw(self) -> bool:
         """Return True if the register will be present in the reg2hw struct."""
-        return self.needs_qe or self.needs_qre or self.has_hw_readable
+        return self.needs_qe or self.needs_qre or self.inner.has_hw_readable
 
     @property
     def present_in_hw2reg(self) -> bool:
         """Return True if the register will be present in the hw2reg struct."""
-        return self.has_hw_writable
+        return self.inner.has_hw_writable
 
     @property
     def addressincr(self) -> int:
@@ -269,29 +294,35 @@ class Register(Node):
             list[Field] The list of fields
 
         """
-        return [f for f in self if (f.msb // self.accesswidth) == subreg]
+        return [f for f in self.children if (f.inner.msb // self.accesswidth) == subreg]
 
 
-class RegisterFile(Node):
+class RegisterFile(
+    NodeWrapper["AddressMap", RegfileNode, Union["RegisterFile", Register]]
+):
     """Represents a field within a Register."""
 
     pass
 
 
-class AddressMap(Node):
+class AddressMap(
+    NodeWrapper[None, AddrmapNode, Union["AddressMap", Register, Field, RegisterFile]]
+):
     """Represents an address map."""
 
-    def get_register_files(self) -> list[RegisterFile]:
+    @property
+    def register_files(self) -> list[RegisterFile]:
         """Return a list of all the register files in an address map.
 
         Returns:
           list[RegisterFile]: The list of register files in the address map
 
         """
-        return [child for child in self if isinstance(child, RegisterFile)]
+        return [c for c in self.children if isinstance(c, RegisterFile)]
 
-    def get_registers(self) -> list[Register]:
-        """Return a list of all registers from all levels of hierarchy in the addr map.
+    @property
+    def registers(self) -> list[Register]:
+        """A list of all registers from all levels of hierarchy in the addr map.
 
         Returns:
           list[Register]: The list of registers in the address map
@@ -317,15 +348,15 @@ class AddressMap(Node):
                         f"unexpected call to get_child_regs on object {child}",
                     )
                 case RegisterFile():
-                    for ch in child:
-                        get_child_regs(ch, regs)
+                    for c in child.children:
+                        get_child_regs(c, regs)
                 case Register():
                     regs.append(child)
                 case _:
                     raise RuntimeError(f"unrecognised type: {type(child)}")
 
         registers: list[Register] = []
-        for child in self:
+        for child in self.children:
             get_child_regs(child, registers)
 
         return registers
@@ -333,12 +364,12 @@ class AddressMap(Node):
     @property
     def has_hw2reg(self) -> bool:
         """Returns True if any register has a hw2reg struct."""
-        return any(reg.present_in_hw2reg for reg in self.get_registers())
+        return any(reg.present_in_hw2reg for reg in self.registers)
 
     @property
     def has_reg2hw(self) -> bool:
         """Returns True if any register has a reg2hw struct."""
-        return any(reg.present_in_reg2hw for reg in self.get_registers())
+        return any(reg.present_in_reg2hw for reg in self.registers)
 
     @property
     def addrwidth(self) -> int:
@@ -348,4 +379,4 @@ class AddressMap(Node):
     @property
     def accesswidth(self) -> int:
         """The minimum access width it bits of registers in the map."""
-        return min([reg.accesswidth for reg in self.get_registers()])
+        return min([reg.accesswidth for reg in self.registers])

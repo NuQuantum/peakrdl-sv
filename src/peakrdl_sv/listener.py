@@ -5,12 +5,12 @@ from __future__ import annotations
 import contextlib
 from typing import TypeAlias
 
-from systemrdl import RDLListener, RDLWalker
 from systemrdl.node import AddrmapNode, FieldNode, RegfileNode, RegNode, RootNode
+from systemrdl.walker import RDLListener, RDLWalker
 
 from peakrdl_sv.node import AddressMap, Field, Register, RegisterFile
 
-Node: TypeAlias = AddrmapNode | RegfileNode | RegNode | FieldNode
+NodeWrapper: TypeAlias = AddressMap | RegisterFile | Register | Field
 
 
 class Listener(RDLListener):
@@ -18,30 +18,30 @@ class Listener(RDLListener):
 
     def __init__(self) -> None:
         """Initialise the listener."""
-        self._active_node : list[Node] = []  # REVISIT: better name
+        self._active_node: list[NodeWrapper] = []
         self.top_node = None
 
     @property
-    def _current_node(self) -> Node:
+    def _current_node(self) -> NodeWrapper:
         """The head of the stack."""
         return self._active_node[-1]
 
-    def push(self, node: Node) -> None:
+    def push(self, node: NodeWrapper) -> None:
         """Push a node onto the stack.
 
         Args:
-          node: AddressMap | RegisterFile | Register:
+          node: NodeWrapper:
 
         """
         with contextlib.suppress(IndexError):
-            self._current_node.append(node)
+            self._current_node.children.append(node)
         self._active_node.append(node)
 
     def pop(self) -> None:
         """Set the `top_node` member to the head of the stack."""
         self.top_node = self._active_node.pop()
 
-    def enter_Addrmap(self, node: Node) -> None:
+    def enter_Addrmap(self, node: AddrmapNode) -> None:
         """Create an address map on the stack with the provided root Node.
 
         Args:
@@ -50,7 +50,7 @@ class Listener(RDLListener):
         """
         self.push(AddressMap(node, None))
 
-    def exit_Addrmap(self, _: None) -> None:
+    def exit_Addrmap(self, _: AddrmapNode) -> None:
         """Alias for pop().
 
         Args:

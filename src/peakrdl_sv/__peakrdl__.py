@@ -15,11 +15,11 @@ class VerilogExporter(ExporterSubcommandPlugin):
 
     short_desc = "A SystemVerilog SystemRDL exporter"
 
-    def add_exporter_arguments(self, arg_group: argparse.ArgumentParser) -> None:
+    def add_exporter_arguments(self, arg_group: argparse._ActionsContainer) -> None:
         """Peakrdl-sv custom arguments.
 
         Args:
-          arg_group (argparse.ArgumentParser): The parser to append arguments to
+          arg_group (argparse._ActionsContainer): The parser to append arguments to
 
         """
         arg_group.add_argument(

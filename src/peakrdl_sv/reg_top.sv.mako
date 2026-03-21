@@ -5,12 +5,12 @@
 <%
   from systemrdl.rdltypes import OnReadType, OnWriteType
 
-  lblock = block.inst_name.lower()
-  ublock = block.inst_name.upper()
+  lblock = block.name.lower()
+  ublock = block.name.upper()
 
   addr_width = block.addrwidth
   data_width = block.accesswidth
-  registers  = block.get_registers()
+  registers  = block.registers
 
   # Construct a dict that contains useful signal names that would otherwise
   # have to be computed in multiple places.
@@ -26,15 +26,15 @@
     if r.is_wide:
       # If the regwidth > accesswidth, then we need multiple read/write enables.
       for s in range(r.subregs):
-        if r.has_sw_writable:
+        if r.inner.has_sw_writable:
           reg_enables[key]['we'].append( f"{r.path().lower()}_{s}_we" )
-        if r.has_sw_readable:
+        if r.inner.has_sw_readable:
           reg_enables[key]['re'].append( f"{r.path().lower()}_{s}_re" )
     else:
       # If regwidth == accesswidth, then we have a single read/write enable.
-      if r.has_sw_writable:
+      if r.inner.has_sw_writable:
         reg_enables[key]['we'].append( f"{r.path().lower()}_we" )
-      if r.has_sw_readable:
+      if r.inner.has_sw_readable:
         reg_enables[key]['re'].append( f"{r.path().lower()}_re" )
 
     # Increase the index by the subreg count.  The index of each addressable
@@ -83,12 +83,12 @@ module ${lblock}_reg_top
   // --------------------------------------------------------------------------------
 
   % for r in registers:
-  % if r.has_sw_readable:
+  % if r.inner.has_sw_readable:
   % for enable in reg_enables[r.path().lower()]['re']:
   logic ${enable};
   % endfor
   % endif
-  % if r.has_sw_writable:
+  % if r.inner.has_sw_writable:
   % for enable in reg_enables[r.path().lower()]['we']:
   logic ${enable};
   % endfor
@@ -105,50 +105,50 @@ module ${lblock}_reg_top
   % for i,r in enumerate(registers):
   % for f in r:
 <%
-  if len(r) == 1:
+  if len(r.children) == 1:
     struct_path = f"{r.path().lower()}"
   else:
-    struct_path = f"{r.path().lower()}.{f.inst_name.lower()}"
+    struct_path = f"{r.path().lower()}.{f.name.lower()}"
 
-  subreg_idx = f.msb // r.accesswidth
+  subreg_idx = f.inner.msb // r.accesswidth
 
   if r.is_wide:
-    we_expr = reg_enables[r.path().lower()]['we'][subreg_idx] if f.is_sw_writable else "'0"
+    we_expr = reg_enables[r.path().lower()]['we'][subreg_idx] if f.inner.is_sw_writable else "'0"
     re_expr = reg_enables[r.path().lower()]['re'][subreg_idx] if f.needs_qre else ""
   else:
-    we_expr = f"{r.path().lower()}_we" if f.is_sw_writable else "'0"
+    we_expr = f"{r.path().lower()}_we" if f.inner.is_sw_writable else "'0"
     re_expr = f"{r.path().lower()}_re" if f.needs_qre else ""
 
-  wd_expr = f"{f.path().lower()}_wd" if f.is_sw_writable else ""
-  qs_expr = f"{f.path().lower()}_qs" if f.is_sw_readable else ""
+  wd_expr = f"{f.path().lower()}_wd" if f.inner.is_sw_writable else ""
+  qs_expr = f"{f.path().lower()}_qs" if f.inner.is_sw_readable else ""
 
-  de_expr = f"hw2reg.{struct_path}.de" if f.is_hw_writable else "'0"
-  d_expr  = f"hw2reg.{struct_path}.d"  if f.is_hw_writable else "'0"
+  de_expr = f"hw2reg.{struct_path}.de" if f.inner.is_hw_writable else "'0"
+  d_expr  = f"hw2reg.{struct_path}.d"  if f.inner.is_hw_writable else "'0"
 
-  q_expr   = f"reg2hw.{struct_path}.q"  if f.is_hw_readable else ""
+  q_expr   = f"reg2hw.{struct_path}.q"  if f.inner.is_hw_readable else ""
   qe_expr  = f"reg2hw.{struct_path}.qe" if f.needs_qe else ""
   qre_expr = f"reg2hw.{struct_path}.re" if f.needs_qre else ""
 
 %>\
   // Register[${r.name}] Field[${f.name}] Bits[${f.get_bit_slice()}]
-  % if f.is_sw_readable:
+  % if f.inner.is_sw_readable:
   logic ${sv_bitarray(f)} ${qs_expr};
   % endif
-  % if not f.implements_storage:
-    % if f.is_hw_writable:
+  % if not f.inner.implements_storage:
+    % if f.inner.is_hw_writable:
       % if f.needs_qre:
   assign ${qre_expr} = ${re_expr};
       % endif
   assign ${qs_expr} = ${d_expr};
     %else:
-      % if f.is_hw_readable:
+      % if f.inner.is_hw_readable:
   assign ${q_expr} = ${reset_gen(f)};
       % endif
   assign ${qs_expr} = ${reset_gen(f)};
     %endif
-  % elif r.external:
+  % elif r.inner.external:
   rdl_subreg_ext #(
-    .DW (${f.width})
+    .DW (${f.inner.width})
   ) u_${f.path().lower()} (
     .re  (${re_expr}),
     .we  (${we_expr}),
@@ -161,7 +161,7 @@ module ${lblock}_reg_top
   );
   % else:
   rdl_subreg #(
-    .DW         (${f.width}),
+    .DW         (${f.inner.width}),
     .ResetType  (ResetType),
     .ResetValue (${reset_gen(f)}),
     .OnRead     (${onread_gen(f)}),
@@ -211,14 +211,14 @@ module ${lblock}_reg_top
   // --------------------------------------------------------------------------------
 
   % for i,r in enumerate(registers):
-    % if r.has_sw_writable:
+    % if r.inner.has_sw_writable:
 ${register_we_gen(r,i)}\
     % endif
-    % if r.has_sw_readable:
+    % if r.inner.has_sw_readable:
 ${register_re_gen(r,i)}\
     %endif
-  % if len(r) == 1:
-${field_wd_gen(r[0])}\
+  % if len(r.children) == 1:
+${field_wd_gen(r.children[0])}\
   % else:
     % for f in r:
 ${field_wd_gen(f)}\
@@ -279,12 +279,12 @@ endmodule
   % endfor
 </%def>\
 <%def name="field_wd_gen(field)">\
-  % if field.is_sw_writable:
+  % if field.inner.is_sw_writable:
   assign ${field.path().lower()}_wd = reg_wdata[${field.get_cpuif_bit_slice()}];
   % endif
 </%def>\
 <%def name="rdata_gen(field, rd_name='reg_rdata')">\
-% if field.is_sw_readable:
+% if field.inner.is_sw_readable:
         ${rd_name}[${field.get_cpuif_bit_slice()}] = ${field.path().lower()}_qs;
 % else:
         ${rd_name}[${field.get_cpuif_bit_slice()}] = '0;
@@ -315,10 +315,10 @@ OnWriteWset
 OnReadNone
 </%def>\
 <%def name="reset_gen(field)" filter="trim">\
-${field.width}'d${field.reset or 0}
+${field.inner.width}'d${field.reset or 0}
 </%def>\
 <%def name="sv_bitarray(field)" filter="trim">\
-% if field.width > 1:
-[${field.width-1}:0]
+% if field.inner.width > 1:
+[${field.inner.width-1}:0]
 % endif
 </%def>\

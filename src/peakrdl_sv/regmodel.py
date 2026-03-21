@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from systemrdl import RDLCompiler
+from systemrdl.compiler import RDLCompiler
 
 from peakrdl_sv.callbacks import CallbackSet
 from peakrdl_sv.listener import Listener
@@ -84,9 +84,7 @@ class RegModel:
           Dict[str, Register]: A map of register relative paths to Register objects
 
         """
-        return {
-            register.path("."): register for register in self._top_node.get_registers()
-        }
+        return {register.path("."): register for register in self._top_node.registers}
 
     def _map_fields(self) -> dict[str, dict[str, FieldWrapper]]:
         """Map register names to dictionaries of fields which maps to (desired) values.
@@ -101,8 +99,7 @@ class RegModel:
         try:
             return {
                 reg_name: {
-                    field.inst_name: FieldWrapper(field, field.reset or 0)
-                    for field in reg
+                    field.name: FieldWrapper(field, field.reset or 0) for field in reg
                 }
                 for reg_name, reg in self._reg_map.items()
             }
@@ -173,8 +170,8 @@ class RegModel:
         # Extract the bits we are going to write and convert them to int
         for field in target:
             # get the slice indices of the field
-            lower = target.regwidth - field.msb - 1
-            upper = target.regwidth - field.lsb
+            lower = target.regwidth - field.inner.msb - 1
+            upper = target.regwidth - field.inner.lsb
 
             # perform the slice (python slicing non inclusive)
             yield (field.absolute_address, int(bits[lower:upper], 2))
@@ -219,11 +216,11 @@ class RegModel:
             # write the word
             self._log.debug(
                 f"Writing data {hex(masked)} to addr"
-                f" {target.absolute_address + subreg} ",
+                f" {target.inner.absolute_address + subreg} ",
             )
 
             await self._callbacks.async_write_callback(
-                target.absolute_address + subreg,
+                target.inner.absolute_address + subreg,
                 masked,
                 **kwargs,
             )
@@ -255,7 +252,7 @@ class RegModel:
             result = 0
             # if its wide we need to read in accesswidth chunks
             for subreg in range(target.subregs):
-                addr = target.absolute_address + subreg
+                addr = target.inner.absolute_address + subreg
                 value = await self._callbacks.async_read_callback(addr)
                 self._log.debug(f"Read value: {hex(value)}")
                 result = result | (value << (target.accesswidth * subreg))
@@ -274,8 +271,8 @@ class RegModel:
             value: int = await self._callbacks.async_read_callback(addr)
 
             # Refer the field to zero and mask out higher bits
-            shamt: int = target_field.lsb % target.accesswidth
-            mask: int = (1 << target_field.width) - 1
+            shamt: int = target_field.inner.lsb % target.accesswidth
+            mask: int = (1 << target_field.inner.width) - 1
             return (value >> shamt) & mask
 
         if field_name is None:
@@ -314,7 +311,7 @@ class RegModel:
 
         # Write the values to the respective fields
         for idx, field in enumerate(target):
-            self._desired_values[reg_name][field.inst_name].value = masked_values[idx]
+            self._desired_values[reg_name][field.name].value = masked_values[idx]
 
     def set_field(self, reg_name: str, field_name: str, value: int) -> None:
         """Set the desired value of a field.
@@ -353,7 +350,7 @@ class RegModel:
         value = 0
         for field in target:
             # shift in the value at the offset given by the actual field
-            part = self._desired_values[reg_name][field.inst_name].value << field.lsb
+            part = self._desired_values[reg_name][field.name].value << field.inner.lsb
             value = value | part
 
         return value
@@ -408,7 +405,7 @@ class RegModel:
         self.set_field(
             reg_name,
             field_name,
-            np.random.randint(0, 1 << target_field.field.width),
+            np.random.randint(0, 1 << target_field.field.inner.width),
         )
 
     def reset(self, reg_name: str) -> None:
@@ -423,7 +420,7 @@ class RegModel:
 
         # write each reset value to each field
         for field in target:
-            self._desired_values[reg_name][field.inst_name].value = field.reset or 0
+            self._desired_values[reg_name][field.name].value = field.reset or 0
 
     def reset_field(self, reg_name: str, field_name: str) -> None:
         """Reset the desired value of a field within a register.
