@@ -27,9 +27,6 @@ class VerilogExporterBase:
           node: RootNode | AddrmapNode: The root node of the map, or the map itself
 
         """
-        if isinstance(node, RootNode):
-            node = node.top
-
         self.listener.walk(node, unroll=True)
 
     def export(

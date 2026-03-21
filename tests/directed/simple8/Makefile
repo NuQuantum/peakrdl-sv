@@ -1,11 +1,11 @@
 all: sv lint
 
 sv:
-	peakrdl sv -o rtl simple8.rdl
-	sv-exporter -o rtl install
+	uv run peakrdl sv -o rtl simple8.rdl
+	uv run sv-exporter -o rtl install
 
 python:
-	peakrdl py -o python simple8.rdl
+	uv run peakrdl py -o python simple8.rdl
 
 lint:
 	@verilator --lint-only --Wall --top-module simple8_reg_top \

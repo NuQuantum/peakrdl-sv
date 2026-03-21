@@ -49,9 +49,9 @@ async def assert_field_match(tb: Testbench, register: str, field: str) -> None:
     :type field: str
     """
     actual = await tb.RAL.read(register, field)
-    assert (
-        tb.RAL.get_field(register, field) == actual
-    ), f"Expected does not equal actual ({actual})"
+    assert tb.RAL.get_field(register, field) == actual, (
+        f"Expected does not equal actual ({actual})"
+    )
 
 
 @cocotb.test(timeout_time=50, timeout_unit="us")
@@ -127,11 +127,11 @@ async def test_field_read_write(dut) -> None:
 
     for i in range(2):
         # Assert equality
-        await assert_field_match(tb, target, f"f{i+1}")
+        await assert_field_match(tb, target, f"f{i + 1}")
 
     for i in range(2):
         # randomize the current field value
-        tb.RAL.randomize_field(target, f"f{i+1}")
+        tb.RAL.randomize_field(target, f"f{i + 1}")
         await tb.RAL.write(target)
 
         # assert value of the register
@@ -155,11 +155,11 @@ async def test_wide_register_read_write(dut) -> None:
 
     for i in range(2):
         # randomize the current field
-        tb.RAL.randomize_field(target, f"f{i+1}")
+        tb.RAL.randomize_field(target, f"f{i + 1}")
         await tb.RAL.write(target)
 
         # assert equality on entire register
-        await assert_field_match(tb, target, f"f{i+1}")
+        await assert_field_match(tb, target, f"f{i + 1}")
 
     # write a wide reg by setting each field and then writing
     tb.RAL.randomize(target)
@@ -190,4 +190,4 @@ async def test_wide_narrow_register_read_write(dut) -> None:
 
     # Check that each field match
     for i in range(4):
-        await assert_field_match(tb, target, f"f{i+1}")
+        await assert_field_match(tb, target, f"f{i + 1}")

@@ -25,9 +25,9 @@ EXTRA_ARGS += --trace-fst --trace-structs
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
 rtl:
-	echo "Auto-generating SV output"
-	peakrdl sv -o rtl addrmap.rdl
-	sv-exporter -o rtl install
+	@echo "Auto-generating SV output"
+	uv run peakrdl sv -o rtl addrmap.rdl
+	uv run sv-exporter -o rtl install
 
 clean::
 	rm -rf rtl

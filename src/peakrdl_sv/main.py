@@ -10,7 +10,7 @@ import sys
 from importlib.resources import files
 from pathlib import Path
 
-from systemrdl import RDLCompiler
+from systemrdl.compiler import RDLCompiler
 
 from peakrdl_sv.exporter import VerilogExporterBase
 
