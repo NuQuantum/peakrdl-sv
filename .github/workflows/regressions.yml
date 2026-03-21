@@ -23,14 +23,16 @@ jobs:
       - name: Get Verilator stable commit SHA
         id: verilator-sha
         run: |
-          SHA=$(git ls-remote https://github.com/verilator/verilator.git refs/heads/stable | cut -f1)
+          SHA=$(git ls-remote --tags https://github.com/verilator/verilator.git | grep v5.024 | cut -f1 | tail -n 1)
           echo "sha=$SHA" >> $GITHUB_OUTPUT
 
       - name: Cache Verilator build
         id: verilator-cache
         uses: actions/cache@v4
         with:
-          path: /usr/local/bin/verilator*
+          path: |
+            /usr/local/bin/verilator*
+            /usr/local/share/verilator
           key: verilator-${{ steps.verilator-sha.outputs.sha }}
 
       - name: Build and install Verilator from source
@@ -38,7 +40,7 @@ jobs:
         run: |
           git clone https://github.com/verilator/verilator.git
           cd verilator
-          git checkout stable
+          git checkout v5.024
           autoconf
           ./configure
           make -j$(nproc)
@@ -48,4 +50,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run cocotb tests
-        run: cd tests/regressions && make
+        run: |
+          cd tests/regressions
+          make rtl
+          make test
