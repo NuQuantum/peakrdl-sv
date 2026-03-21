@@ -29,6 +29,7 @@ def create_output_directory(output: str) -> Path:
     """
     try:
         outpath = Path(output)
+        print(f"making directory {outpath.absolute()}")
         outpath.mkdir(parents=True, exist_ok=True)
         return outpath.absolute()
     except TypeError:
@@ -57,7 +58,7 @@ def export(args: argparse.Namespace) -> None:
 
 
 def install(args: argparse.Namespace) -> None:
-    """Install the peakrdl-sv output verillog to a particular directory.
+    """Install the peakrdl-sv output verilog to a particular directory.
 
     Args:
       args: Namespace containing "output"
@@ -71,8 +72,8 @@ def install(args: argparse.Namespace) -> None:
         if item.is_file() and item.name.endswith(".sv")
     ]:
         dst = outpath / src.name
-        logger.debug(f"copying {src} to {dst}")
-        shutil.copy2(str(src), dst.name)
+        logging.debug(f"copying {src} to {dst}")
+        shutil.copy2(str(src), str(dst))
 
 
 def get_parser() -> argparse.ArgumentParser:

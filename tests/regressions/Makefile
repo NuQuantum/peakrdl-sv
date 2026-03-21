@@ -1,38 +1,39 @@
-SIM ?= verilator
+SIM           ?= verilator
 TOPLEVEL_LANG ?= verilog
-WAVES ?= 0
+WAVES         ?= 0
 
-RTL_DIR = rtl
-RTL_PKG_FILES = $(wildcard $(RTL_DIR)/*_pkg.sv)
-RTL_SRC_FILES = $(filter-out $(RTL_PKG_FILES), $(wildcard $(RTL_DIR)/*.sv))
+RTL_DIR       := rtl
+RTL_PKG_FILES := $(wildcard $(RTL_DIR)/*_pkg.sv)
+RTL_SRC_FILES := $(filter-out $(RTL_PKG_FILES), $(wildcard $(RTL_DIR)/*.sv))
 
-TOPLEVEL = test_reg_top
-MODULE = test
+TOPLEVEL := test_reg_top
+MODULE   := test
 
 CUSTOM_COMPILE_DEPS = rtl
-COMPILE_ARGS += $(RTL_PKG_FILES) $(RTL_SRC_FILES)
+VERILOG_SOURCES := $(RTL_PKG_FILES) $(RTL_SRC_FILES)
 
 ADDR_MAP = addrmap.rdl
 export ADDR_MAP
 
-ifeq (SIM, verilator)
-ifeq (WAVES, 1)
+ifeq ($(SIM), verilator)
+ifeq ($(WAVES), 1)
 EXTRA_ARGS += --trace-fst --trace-structs
 endif
 endif
 
-EXTRA_ARGS += --trace-fst --trace-structs
 include $(shell cocotb-config --makefiles)/Makefile.sim
+
+.PHONY: rtl test clean
 
 rtl:
 	@echo "Auto-generating SV output"
-	uv run peakrdl sv -o rtl addrmap.rdl
-	uv run sv-exporter -o rtl install
+	uv run peakrdl sv -o $(RTL_DIR) addrmap.rdl
+	uv run sv-exporter -o $(RTL_DIR) install
 
 clean::
-	rm -rf rtl
+	rm -rf $(RTL_DIR)
 	rm -f results.xml
 
-test: $(.DEFAULT_GOAL)
+test: rtl $(.DEFAULT_GOAL)
 	@echo $(RTL_PKG_FILES)
 	@echo $(RTL_SRC_FILES)
