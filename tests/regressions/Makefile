@@ -32,7 +32,7 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 rtl:
 	@echo Auto-generating SV output
 	uv run peakrdl sv --cpuif $(CPUIF) -o $(RTL_DIR) $(ADDR_MAP)
-	uv run sv-exporter -o $(RTL_DIR) install
+	uv run sv-exporter -o $(RTL_DIR) install --cpuif $(CPUIF)
 
 clean::
 	rm -rf $(RTL_DIR)

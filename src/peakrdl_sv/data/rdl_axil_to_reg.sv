@@ -213,8 +213,6 @@ module rdl_axil_to_reg
     end
   end
 
-
-
   rdl_subreg_flop #(
       .DW        (AW),
       .ResetType (ResetType),
