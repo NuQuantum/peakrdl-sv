@@ -115,11 +115,11 @@ module ${lblock}_reg_top
   logic [DW-1:0]       reg_wdata;
   logic [DW-1:0]       reg_rdata;
 
-  rdl_axil_to_reg #(
+  rdl_axil_to_csr #(
     .ResetType (ResetType),
     .AW        (AW),
     .DW        (DW)
-  ) rdl_axil_to_reg_i (
+  ) rdl_axil_to_csr_i (
     .clk        (clk),
     .rst        (rst),
 

@@ -1,4 +1,4 @@
-module rdl_axil_to_reg
+module rdl_axil_to_csr
   import rdl_subreg_pkg::*;
 #(
     parameter reset_type_e ResetType = ActiveHighSync,
