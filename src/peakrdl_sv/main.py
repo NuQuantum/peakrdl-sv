@@ -69,7 +69,9 @@ def install(args: argparse.Namespace) -> None:
     for src in [
         item
         for item in files("peakrdl_sv").joinpath("data").iterdir()
-        if item.is_file() and item.name.endswith(".sv")
+        if item.is_file()
+        and item.name.endswith(".sv")
+        and (("axil" not in item.name.lower()) or args.cpuif == "axi-lite")
     ]:
         dst = outpath / src.name
         logging.debug(f"copying {src} to {dst}")
@@ -107,6 +109,12 @@ def get_parser() -> argparse.ArgumentParser:
         help="The SystemRDL file to process",
     )
     parser_export.add_argument(
+        "--cpuif",
+        choices=["csr", "axi-lite"],
+        default="csr",
+        help="Specify the CPU interface type",
+    )
+    parser_export.add_argument(
         "--include-subreg",
         action="store_true",
         help="Include the RTL dependencies",
@@ -123,6 +131,12 @@ def get_parser() -> argparse.ArgumentParser:
         help="Install SV source files into local tree",
     )
     parser_install.set_defaults(func=install)
+    parser_install.add_argument(
+        "--cpuif",
+        choices=["csr", "axi-lite"],
+        default="csr",
+        help="Specify the CPU interface type",
+    )
 
     return parser
 

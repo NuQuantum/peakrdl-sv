@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 import cocotb
 from cocotb.clock import Clock
@@ -68,33 +69,65 @@ class Testbench:
     def __init__(self, dut, rdl_file: str, debug: bool = False) -> None:
         self.dut = dut
 
+        cpuif = os.environ.get("CPUIF", "csr")
+
+
+       # if reset type is even (0 or 2) then active high
+        self.rst_active, self.rst_inactive = (1, 0) if self.dut.ResetType.value % 2 == 0 else (0, 1)
+
+        # local copies of parameter values
+        self.addr_width = self.dut.AW.value
+        self.data_width = self.dut.DW.value
+
         # Initialise the bus to something useful - for now assume that the bus is a CSR
         # bus
         dut.clk.setimmediatevalue(0)
-        dut.rst.setimmediatevalue(0)
-        dut.reg_we.setimmediatevalue(0)
-        dut.reg_re.setimmediatevalue(0)
-        dut.reg_addr.setimmediatevalue(0)
-        dut.reg_wdata.setimmediatevalue(0)
+        dut.rst.setimmediatevalue(self.rst_inactive)
         dut.hw2reg.setimmediatevalue(0)
 
-        self.bus = CsrDriver(self.dut, self.dut.clk)
+        if cpuif == "csr":
+            dut.reg_we.setimmediatevalue(0)
+            dut.reg_re.setimmediatevalue(0)
+            dut.reg_addr.setimmediatevalue(0)
+            dut.reg_wdata.setimmediatevalue(0)
+            self.bus = CsrDriver(self.dut, self.dut.clk)
+
+            # Register Abstraction Layer - use the same call back for each but are called
+            # with different args to indicate read/write
+            callbacks = CallbackSet(
+                async_write_callback=self.bus._driver_send,
+                async_read_callback=self.bus._driver_send,
+            )
+        elif cpuif == "axi-lite":
+            from cocotbext.axi.axil_channels import AxiLiteBus
+            from cocotbext.axi.axil_master import AxiLiteMaster
+            self.bus = AxiLiteMaster(
+                AxiLiteBus.from_prefix(dut, "s_axil"),
+                clock=dut.clk,
+                reset=dut.rst,
+                reset_active_level=self.rst_active,
+            )
+            async def _write(addr: int, data: int) -> None:
+                await self.bus.write(
+                    addr, int(data).to_bytes(self.data_width // 8, "big")
+                )
+
+            async def _read(addr: int) -> int:
+                return int.from_bytes(
+                    await self.bus.read(addr, self.data_width // 8), "big"
+                )
+            callbacks = CallbackSet(
+                async_write_callback=_write,
+                async_read_callback=_read,
+            )
+
         self.clkedge = RisingEdge(self.dut.clk)
         self._log = dut._log
 
         if debug:
             self._log.setLevel(logging.DEBUG)
 
-        # local copies of parameter values
-        self.addr_width = self.dut.AW
-        self.data_width = self.dut.DW
 
-        # Register Abstraction Layer - use the same call back for each but are called
-        # with different args to indicate read/write
-        callbacks = CallbackSet(
-            async_write_callback=self.bus._driver_send,
-            async_read_callback=self.bus._driver_send,
-        )
         self.RAL = RegModel(rdl_file, callbacks, self._log, debug)
 
         cocotb.start_soon(Clock(dut.clk, 5, "ns").start())
