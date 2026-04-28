@@ -1,17 +1,19 @@
+#!/usr/bin/env bash
 # Source this file to install and activate the virtual environment from scratch
 VENV=.venv
 
-CLEAN=0
-UV_SYNC_EXTRA_ARGS=
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # Process flags
+EXTRA_ARGS_UV_SYNC=
+EXTRA_ARGS_UV_VENV=
 for arg in "$@"; do
   case $arg in
-        --clean)
-            CLEAN=1
+        --clean|--clear)
+            EXTRA_ARGS_UV_VENV="$EXTRA_ARGS_UV_VENV --clear"
             ;;
         --upgrade)
-            UV_SYNC_EXTRA_ARGS="$UV_SYNC_EXTRA_ARGS --upgrade"
+            EXTRA_ARGS_UV_SYNC="$EXTRA_ARGS_UV_SYNC --upgrade"
             ;;
         *)
             echo "Unknown argument: $arg"
@@ -21,15 +23,7 @@ for arg in "$@"; do
     esac
 done
 
-# If --clean flag is set and VENV exists, remove it
-if [[ $CLEAN -eq 1 && -d $VENV ]]; then
-  echo "Cleaning existing virtual environment..."
-  rm -rf "$VENV"
-fi
-
-uv venv --allow-existing
-source "$VENV/bin/activate"
-uv sync --all-extras $UV_SYNC_EXTRA_ARGS
-uv lock
-
-pre-commit install
+uv --project="$SCRIPT_DIR" venv --allow-existing $EXTRA_ARGS_UV_VENV
+uv --project="$SCRIPT_DIR" sync --all-extras $UV_SYNC_EXTRA_ARGS
+uv --project="$SCRIPT_DIR" run pre-commit install
+. "$SCRIPT_DIR/$VENV/bin/activate"
