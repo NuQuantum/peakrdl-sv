@@ -18,7 +18,7 @@ $ pip install git+https://github.com/nuquantum/peakrdl-sv
 The exporter integrates with PeakRDL via the plugin flow defined here:
 https://peakrdl.readthedocs.io/en/latest/for-devs/exporter-plugin.html
 
-```
+```console
 $ peakrdl sv -o ./generated <filename.rdl>
 ```
 
@@ -26,7 +26,7 @@ You can also run a standalone script that offers both `export` and `install`
 targets.  The latter will install the required RTL dependencies to a local directory.
 This can also be done at the `export` stage by passing the `--include-subreg` argument.
 
-```
+```console
 $ peakrdl-sv -h
 usage: peakrdl-sv [-h] [-v] [-o OUTPUT] {export,install} ...
 
