@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import shutil
 import sys
 from importlib.resources import files
 from pathlib import Path
@@ -66,14 +65,11 @@ def install(args: argparse.Namespace) -> None:
     """
     outpath = create_output_directory(args.output)
     logging.debug("installing SV to " + str(outpath))
-    for src in [
-        item
-        for item in files("peakrdl_sv").joinpath("data").iterdir()
-        if item.is_file() and item.name.endswith(".sv")
-    ]:
+    src_dir = files("peakrdl_sv").joinpath("data")
+    for src in (p for p in src_dir.iterdir() if p.is_file() and p.name.endswith(".sv")):
         dst = outpath / src.name
         logging.debug(f"copying {src} to {dst}")
-        shutil.copy2(str(src), str(dst))
+        dst.write_bytes(src.read_bytes())
 
 
 def get_parser() -> argparse.ArgumentParser:
