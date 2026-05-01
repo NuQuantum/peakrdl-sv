@@ -16,3 +16,6 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .ruff_cache
 	rm -rf .pytest_cache
+
+test:
+	$(MAKE) -C tests/regressions
