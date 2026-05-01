@@ -97,6 +97,8 @@ select = [
 ]
 ignore = [
     "T201",   # remove print (used for debugging and output in some cases)
+    "D203", # D203 and D211 are incompatible. Pick D211
+    "D213", # D212 and D213 are incompatible. Pick D212
 ]
 
 [tool.ruff.lint.per-file-ignores]
