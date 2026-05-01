@@ -38,5 +38,5 @@ clean::
 	rm -rf $(RTL_DIR)
 	rm -f results.xml
 
-test: $(.DEFAULT_GOAL)
+test: $(.DEFAULT_GOAL) rtl
 	@echo Verilog sources: $(VERILOG_SOURCES)
