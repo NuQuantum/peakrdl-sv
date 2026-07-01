@@ -33,12 +33,15 @@ class VerilogExporterBase:
         self,
         node: AddrmapNode | RootNode | None,
         options: argparse.Namespace,
-    ) -> None:
+    ) -> list[Path]:
         """Export a register map to (System)Verilog.
 
         Args:
           node: RootNode | AddrmapNode | None: The root node of the PeakRDL reg map
           options: argparse.Namespace: the output path
+
+        Returns:
+            list[Path]: The list of output files generated
 
         """
         if node is None:
@@ -68,6 +71,8 @@ class VerilogExporterBase:
         with reg_pkg_path.open("w") as f:
             f.write(reg_pkg_tpl.render(block=self.listener.top_node))
 
+        return [reg_pkg_path.absolute(), reg_top_path.absolute()]
+
 
 class PythonExporterBase:
     """A simple exporter for RDL -> Python."""
@@ -92,12 +97,15 @@ class PythonExporterBase:
         self,
         node: RootNode | AddrmapNode | None,
         options: argparse.Namespace,
-    ) -> None:
+    ) -> list[Path]:
         """Export a register map to Python.
 
         Args:
           node: RootNode | AddrmapNode | None: The root node of the PeakRDL reg map
           options: argparse.Namespace: the output path
+
+        Returns:
+            list[Path]: The list of output files generated
 
         """
         if node is not None:
@@ -116,3 +124,5 @@ class PythonExporterBase:
         )
         with reg_map_path.open("w") as f:
             f.write(reg_map_tpl.render(block=self.listener.top_node))
+
+        return [reg_map_path.absolute()]

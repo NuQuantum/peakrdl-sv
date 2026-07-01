@@ -35,11 +35,15 @@ def create_output_directory(output: str) -> Path:
         return Path().absolute()
 
 
-def export(args: argparse.Namespace) -> None:
+def export(args: argparse.Namespace) -> tuple[list[Path], list[Path]]:
     """Run the peakrdl-sv tool on an input file, and dumps the output to a file.
 
     Args:
       args: Namespace containing "output" and "filename"
+
+    Returns:
+        tuple[list[Path], list[Path]]: The list of output files generated and the list
+        of RDL files
 
     """
     outpath = create_output_directory(args.output)
@@ -50,26 +54,35 @@ def export(args: argparse.Namespace) -> None:
 
     root = rdlc.elaborate()
     exporter = VerilogExporterBase()
-    exporter.export(root, args)
+    generated = exporter.export(root, args)
+    subregs = install(args) if args.include_subreg else []
 
-    if args.include_subreg:
-        install(args)
+    return generated, subregs
 
 
-def install(args: argparse.Namespace) -> None:
+def install(args: argparse.Namespace) -> list[Path]:
     """Install the peakrdl-sv output verilog to a particular directory.
 
     Args:
       args: Namespace containing "output"
 
+    Returns:
+        list[Path]: The list of output files generated
+
     """
+    generated = []
+
     outpath = create_output_directory(args.output)
     logging.debug("installing SV to " + str(outpath))
     src_dir = files("peakrdl_sv").joinpath("data")
+
     for src in (p for p in src_dir.iterdir() if p.is_file() and p.name.endswith(".sv")):
         dst = outpath / src.name
         logging.debug(f"copying {src} to {dst}")
         dst.write_bytes(src.read_bytes())
+        generated.append(dst.absolute())
+
+    return generated
 
 
 def get_parser() -> argparse.ArgumentParser:
