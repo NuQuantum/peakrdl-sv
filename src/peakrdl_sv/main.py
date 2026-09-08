@@ -42,10 +42,9 @@ def export(args: argparse.Namespace) -> tuple[list[Path], list[Path]]:
       args: Namespace containing "output" and "filename"
 
     Returns:
-        tuple[list[Path], list[Path]]: The list of output files generated and the list
-        of RDL files
+        tuple[list[Path], list[Path]]: The list of generated RTL register maps and the optionally exported register implementation files
 
-    """
+    """  # noqa: E501
     outpath = create_output_directory(args.output)
     logging.debug("running peakrdl-sv; output dumped to " + str(outpath))
 
