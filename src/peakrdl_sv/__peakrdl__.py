@@ -7,7 +7,7 @@ import argparse
 from peakrdl.plugins.exporter import ExporterSubcommandPlugin
 from systemrdl.node import AddrmapNode
 
-from .exporter import PythonExporterBase, VerilogExporterBase
+from .exporter import CpuInterfaceType, PythonExporterBase, VerilogExporterBase
 
 
 class VerilogExporter(ExporterSubcommandPlugin):
@@ -36,6 +36,14 @@ class VerilogExporter(ExporterSubcommandPlugin):
             type=str,
             choices=["async", "sync"],
             help="set the reset type",
+        )
+
+        arg_group.add_argument(
+            "--cpuif",
+            type=CpuInterfaceType,
+            choices=CpuInterfaceType,
+            default=CpuInterfaceType.CSR,
+            help="Set the CPU interface type: ",
         )
 
     def do_export(self, top_node: AddrmapNode, options: argparse.Namespace) -> None:

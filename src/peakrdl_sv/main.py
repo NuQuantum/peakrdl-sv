@@ -11,7 +11,7 @@ from pathlib import Path
 
 from systemrdl.compiler import RDLCompiler
 
-from peakrdl_sv.exporter import VerilogExporterBase
+from peakrdl_sv.exporter import CpuInterfaceType, VerilogExporterBase
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +76,9 @@ def install(args: argparse.Namespace) -> list[Path]:
     src_dir = files("peakrdl_sv").joinpath("data")
 
     for src in (p for p in src_dir.iterdir() if p.is_file() and p.name.endswith(".sv")):
+        # filter cpu interface specific files
+        if "axil" in src.name.lower() and args.cpuif != CpuInterfaceType.AXIL:
+            continue
         dst = outpath / src.name
         logging.debug(f"copying {src} to {dst}")
         dst.write_bytes(src.read_bytes())
@@ -115,6 +118,13 @@ def get_parser() -> argparse.ArgumentParser:
         help="The SystemRDL file to process",
     )
     parser_export.add_argument(
+        "--cpuif",
+        type=CpuInterfaceType,
+        choices=CpuInterfaceType,
+        default=CpuInterfaceType.CSR,
+        help="Specify the CPU interface type",
+    )
+    parser_export.add_argument(
         "--include-subreg",
         action="store_true",
         help="Include the RTL dependencies",
@@ -131,6 +141,13 @@ def get_parser() -> argparse.ArgumentParser:
         help="Install SV source files into local tree",
     )
     parser_install.set_defaults(func=install)
+    parser_install.add_argument(
+        "--cpuif",
+        choices=CpuInterfaceType,
+        default=CpuInterfaceType.CSR,
+        type=CpuInterfaceType,
+        help="Specify the CPU interface type",
+    )
 
     return parser
 

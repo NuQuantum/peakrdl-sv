@@ -60,6 +60,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b6/2b/71975ab8c15f9a2c4c4fe9da4a873ea164eb348449858358f2762b24c0be/cocotb-bus-0.2.1.tar.gz", hash = "sha256:a197aa4b0e0ad28469c8877b41b3fb2ec0206da9f491b9276d1578ce6dd8aa8d", size = 28461, upload-time = "2022-01-22T01:31:53.29Z" }
 
 [[package]]
+name = "cocotbext-axi"
+version = "0.1.26"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cocotb" },
+    { name = "cocotb-bus" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b1/85/85fbd2f224100381447806166caaf0ba2c606e125c0073fcadf38ae191b5/cocotbext_axi-0.1.26.tar.gz", hash = "sha256:7c0c34e2c0163f1df6e314506a49e0d742b23e43eb0ec1b79c89827fb7c2e6b9", size = 58195, upload-time = "2025-09-07T22:35:55.304Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/c7/47220e92da93c59a6db5b5e8962a032ac7b9e3fda159b7b5f5b4936e5701/cocotbext_axi-0.1.26-py3-none-any.whl", hash = "sha256:1560be1da5c4d2a59ae34513184c3b2c72ba5b3147a4f28b4aef1644db10afd4", size = 56664, upload-time = "2025-09-07T22:35:53.293Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -691,6 +704,7 @@ dependencies = [
 dev = [
     { name = "cocotb" },
     { name = "cocotb-bus" },
+    { name = "cocotbext-axi" },
     { name = "mypy" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -703,6 +717,7 @@ dev = [
 requires-dist = [
     { name = "cocotb", marker = "extra == 'dev'", specifier = "==1.9.1" },
     { name = "cocotb-bus", marker = "extra == 'dev'", specifier = "==0.2.1" },
+    { name = "cocotbext-axi", marker = "extra == 'dev'", specifier = ">=0.1.26" },
     { name = "mako" },
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "numpy", marker = "extra == 'dev'" },
